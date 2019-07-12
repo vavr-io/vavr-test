@@ -5,10 +5,6 @@ Before creating a pull request, the following goals should be executed locally:
 * Executing tests: `mvn clean test`
 * Executing doclint: `mvn javadoc:javadoc`
 
-Tests & Code coverage:
-
-* Executing benchmark assertions: `mvn clean test -Pbenchmark`
-* Executing benchmarks (long running!): `mvn test -Pbenchmark -pl vavr-benchmark`
 * Executing code coverage report: `mvn -P ci clean test jacoco:report`
 
 We use these goals frequently to keep the dependencies and plugins up-to-date:
@@ -53,28 +49,28 @@ We use these goals frequently to keep the dependencies and plugins up-to-date:
     </developers>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <assertj.core.version>3.11.1</assertj.core.version>
+        <assertj.core.version>3.12.2</assertj.core.version>
         <eclipse.lifecycle.mapping.version>1.0.0</eclipse.lifecycle.mapping.version>
         <java.version>1.8</java.version>
-        <junit.version>4.13-beta-1</junit.version>
+        <junit.version>4.13-beta-3</junit.version>
         <maven.build-helper.version>3.0.0</maven.build-helper.version>
-        <maven.bundle.version>4.1.0</maven.bundle.version>
+        <maven.bundle.version>4.2.0</maven.bundle.version>
         <maven.clean.version>3.1.0</maven.clean.version>
-        <maven.compiler.version>3.8.0</maven.compiler.version>
+        <maven.compiler.version>3.8.1</maven.compiler.version>
         <maven.deploy.version>3.0.0-M1</maven.deploy.version>
         <maven.enforcer.version>3.0.0-M2</maven.enforcer.version>
         <maven.exec.version>1.5.0</maven.exec.version>
         <maven.gpg.version>1.6</maven.gpg.version>
         <maven.install.version>3.0.0-M1</maven.install.version>
-        <maven.jacoco.version>0.8.2</maven.jacoco.version>
-        <maven.jar.version>3.1.1</maven.jar.version>
-        <maven.javadoc.version>3.0.1</maven.javadoc.version>
+        <maven.jacoco.version>0.8.4</maven.jacoco.version>
+        <maven.jar.version>3.1.2</maven.jar.version>
+        <maven.javadoc.version>3.1.1</maven.javadoc.version>
         <maven.release.version>2.5.3</maven.release.version>
-        <maven.source.version>3.0.1</maven.source.version>
+        <maven.source.version>3.1.0</maven.source.version>
         <maven.surefire.version>3.0.0-M3</maven.surefire.version>
         <maven.versions.version>2.7</maven.versions.version>
         <scala.compat.version>2.12</scala.compat.version>
-        <scala.maven.version>3.4.4</scala.maven.version>
+        <scala.maven.version>4.1.0</scala.maven.version>
         <scala.version>2.12.6</scala.version>
     </properties>
     <dependencies>
