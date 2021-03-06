@@ -1,7 +1,7 @@
 language: java
 
 sudo: false
-dist: trusty
+dist: xenial
 
 install: echo "Don't let Travis CI execute './gradlew assemble' by default"
 
