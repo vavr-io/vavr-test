@@ -61,7 +61,7 @@ We use these goals frequently to keep the dependencies and plugins up-to-date:
         <maven.build-helper.version>3.0.0</maven.build-helper.version>
         <maven.bundle.version>4.2.0</maven.bundle.version>
         <maven.clean.version>3.1.0</maven.clean.version>
-        <maven.compiler.version>3.8.1</maven.compiler.version>
+        <maven.compiler.version>3.13.0</maven.compiler.version>
         <maven.deploy.version>3.0.0-M1</maven.deploy.version>
         <maven.enforcer.version>3.0.0-M2</maven.enforcer.version>
         <maven.exec.version>1.5.0</maven.exec.version>
