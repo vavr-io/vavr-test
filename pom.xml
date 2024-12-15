@@ -70,7 +70,7 @@ We use these goals frequently to keep the dependencies and plugins up-to-date:
         <maven.surefire.version>3.0.0-M3</maven.surefire.version>
         <maven.versions.version>2.7</maven.versions.version>
         <scala.compat.version>2.12</scala.compat.version>
-        <scala.maven.version>4.1.0</scala.maven.version>
+        <scala.maven.version>4.9.2</scala.maven.version>
         <scala.version>2.12.6</scala.version>
     </properties>
     <dependencies>
