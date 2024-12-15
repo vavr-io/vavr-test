@@ -26,11 +26,11 @@ We use these goals frequently to keep the dependencies and plugins up-to-date:
     <packaging>jar</packaging>
     <name>Vavr Test</name>
     <description>A property check framework for Vavr.</description>
-    <url>http://vavr.io</url>
+    <url>https://vavr.io</url>
     <licenses>
         <license>
             <name>The Apache Software License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
             <distribution>repo</distribution>
         </license>
     </licenses>
@@ -45,6 +45,11 @@ We use these goals frequently to keep the dependencies and plugins up-to-date:
             <id>danieldietrich</id>
             <name>Daniel Dietrich</name>
             <email>cafebab3@gmail.com</email>
+        </developer>
+        <developer>
+            <id>pivovarit</id>
+            <name>Grzegorz Piwowarek</name>
+            <email>gpiwowarek@gmail.com</email>
         </developer>
     </developers>
     <properties>
