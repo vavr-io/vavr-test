@@ -46,7 +46,7 @@
         <maven.build-helper.version>3.0.0</maven.build-helper.version>
         <maven.bundle.version>5.1.9</maven.bundle.version>
         <maven.clean.version>3.1.0</maven.clean.version>
-        <maven.compiler.version>3.13.0</maven.compiler.version>
+        <maven.compiler.version>3.14.0</maven.compiler.version>
         <maven.deploy.version>3.1.4</maven.deploy.version>
         <maven.enforcer.version>3.5.0</maven.enforcer.version>
         <maven.exec.version>1.5.0</maven.exec.version>
