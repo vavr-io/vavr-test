@@ -2,12 +2,14 @@ name: build
 on:
   push:
     branches:
-      - master
+      - main
       - version/**
   pull_request:
     branches:
-      - master
+      - main
       - version/**
+  merge_group:
+
 
 jobs:
   build:

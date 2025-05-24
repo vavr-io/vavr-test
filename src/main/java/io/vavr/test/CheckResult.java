@@ -234,7 +234,7 @@ public interface CheckResult {
 
         private final String propertyName;
         private final int count;
-        private final Tuple sample;
+        private transient final Tuple sample;
 
         Falsified(String propertyName, int count, Tuple sample) {
             this.propertyName = propertyName;
