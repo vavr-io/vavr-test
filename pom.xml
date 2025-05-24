@@ -50,7 +50,7 @@
         <maven.deploy.version>3.1.4</maven.deploy.version>
         <maven.enforcer.version>3.5.0</maven.enforcer.version>
         <maven.exec.version>1.5.0</maven.exec.version>
-        <maven.gpg.version>1.6</maven.gpg.version>
+        <maven.gpg.version>3.2.7</maven.gpg.version>
         <maven.install.version>3.1.4</maven.install.version>
         <maven.jacoco.version>0.8.4</maven.jacoco.version>
         <maven.jar.version>3.1.2</maven.jar.version>
