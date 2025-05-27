@@ -6,6 +6,10 @@ updates:
     schedule:
       interval: "daily"
       time: "02:00"
+    ignore:
+      - dependency-name: "io.vavr:vavr"
+        versions:
+          - "1.0.0-alpha*"
   - package-ecosystem: "github-actions"
     directory: "/"
     target-branch: "main"
