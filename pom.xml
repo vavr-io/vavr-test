@@ -83,6 +83,33 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.moditect</groupId>
+                <artifactId>moditect-maven-plugin</artifactId>
+                <version>1.2.2.Final</version>
+                <executions>
+                    <execution>
+                        <id>add-module-infos</id>
+                        <goals>
+                            <goal>add-module-info</goal>
+                        </goals>
+                        <phase>package</phase>
+                        <configuration>
+                            <jvmVersion>9</jvmVersion>
+                            <module>
+                                <moduleInfoSource>
+                                    module io.vavr.test {
+                                        exports io.vavr.test;
+                                        requires io.vavr;
+                                    }
+                                </moduleInfoSource>
+                            </module>
+                            <overwriteExistingFiles>true</overwriteExistingFiles>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
                 <version>${maven.enforcer.version}</version>
