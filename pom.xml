@@ -50,7 +50,7 @@
         <maven.deploy.version>3.1.4</maven.deploy.version>
         <maven.enforcer.version>3.6.0</maven.enforcer.version>
         <maven.exec.version>1.5.0</maven.exec.version>
-        <maven.gpg.version>3.2.7</maven.gpg.version>
+        <maven.gpg.version>3.2.8</maven.gpg.version>
         <maven.install.version>3.1.4</maven.install.version>
         <maven.jar.version>3.4.2</maven.jar.version>
         <maven.javadoc.version>3.11.2</maven.javadoc.version>
@@ -360,7 +360,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>3.2.7</version>
+                        <version>3.2.8</version>
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>
