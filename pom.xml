@@ -16,9 +16,9 @@
         </license>
     </licenses>
     <scm>
-        <connection>scm:git:git@github.com:vavr-io/vavr.git</connection>
-        <developerConnection>scm:git:git@github.com:vavr-io/vavr.git</developerConnection>
-        <url>git@github.com:vavr-io/vavr.git</url>
+        <connection>scm:git:git@github.com:vavr-io/vavr-test.git</connection>
+        <developerConnection>scm:git:git@github.com:vavr-io/vavr-test.git</developerConnection>
+        <url>git@github.com:vavr-io/vavr-test.git</url>
         <tag>HEAD</tag>
     </scm>
     <developers>
