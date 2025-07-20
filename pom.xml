@@ -1,9 +1,8 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.vavr</groupId>
     <artifactId>vavr-test</artifactId>
-    <version>0.11.0-SNAPSHOT</version>
+    <version>0.10.7</version>
     <packaging>jar</packaging>
     <name>Vavr Test</name>
     <description>A property check framework for Vavr.</description>
@@ -19,7 +18,7 @@
         <connection>scm:git:git@github.com:vavr-io/vavr-test.git</connection>
         <developerConnection>scm:git:git@github.com:vavr-io/vavr-test.git</developerConnection>
         <url>git@github.com:vavr-io/vavr-test.git</url>
-        <tag>HEAD</tag>
+        <tag>v0.10.7</tag>
     </scm>
     <developers>
         <developer>
@@ -61,7 +60,7 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>vavr</artifactId>
-            <version>${project.version}</version>
+            <version>0.10.7</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
