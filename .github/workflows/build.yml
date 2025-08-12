@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
     name: Build with JDK ${{ matrix.java }} on ${{ matrix.architecture }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Setup JDK
         uses: actions/setup-java@v4
         with:
@@ -38,7 +38,7 @@ jobs:
     needs: build
     if: github.ref == 'refs/heads/main'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Setup JDK
         uses: actions/setup-java@v4
         with:
