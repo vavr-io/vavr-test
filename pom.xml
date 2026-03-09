@@ -51,7 +51,7 @@
         <maven.jar.version>3.4.2</maven.jar.version>
         <maven.javadoc.version>3.12.0</maven.javadoc.version>
         <maven.release.version>3.1.1</maven.release.version>
-        <maven.source.version>3.3.1</maven.source.version>
+        <maven.source.version>3.4.0</maven.source.version>
         <maven.surefire.version>3.5.5</maven.surefire.version>
         <maven.versions.version>2.19.0</maven.versions.version>
         <scala.maven.version>4.9.9</scala.maven.version>
