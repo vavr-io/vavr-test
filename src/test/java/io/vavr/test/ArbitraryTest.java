@@ -37,8 +37,6 @@ public class ArbitraryTest {
     // equally distributed random number generator
     private static final Random RANDOM = new Random();
 
-    // predictable random number generator (seed = 1)
-    private Random predictableRandom = new Random(1L);
     // -- apply
 
     @Test
@@ -90,6 +88,54 @@ public class ArbitraryTest {
         final Arbitrary<Integer> arbitrary = Arbitrary.integer();
         final Integer actual = arbitrary.apply(10).apply(RANDOM);
         assertThat(actual).isNotNull();
+    }
+
+    @Test
+    public void shouldFavorIntegerBoundariesAndValuesAroundZero() {
+        final List<Integer> values = samples(Arbitrary.integer().apply(10000));
+        final List<Integer> edges = List.of(-10000, -9999, -1, 0, 1, 9999, 10000);
+        assertThat(values).containsAll(edges).allMatch(i -> i >= -10000 && i <= 10000);
+        assertThat(values.count(edges::contains)).isBetween(400, 600);
+        assertThat(samples(Arbitrary.integer().apply(-10000))).isEqualTo(values);
+    }
+
+    @Test
+    public void shouldGenerateIntegersForZeroAndExtremeSizes() {
+        assertThat(samples(Arbitrary.integer().apply(0))).containsOnly(0);
+        assertThat(samples(Arbitrary.integer().apply(Integer.MAX_VALUE)))
+                .contains(-Integer.MAX_VALUE, -1, 0, 1, Integer.MAX_VALUE)
+                .doesNotContain(Integer.MIN_VALUE);
+        assertThat(samples(Arbitrary.integer().apply(Integer.MIN_VALUE)))
+                .contains(Integer.MIN_VALUE, -1, 0, 1, Integer.MAX_VALUE);
+    }
+
+    @Test
+    public void shouldFavorEmptySingletonAndMaximumLengths() {
+        assertLengthEdges(Arbitrary.string(Gen.of('a')).apply(100).map(String::length));
+        assertLengthEdges(Arbitrary.list(Arbitrary.of(1)).apply(100).map(List::length));
+        assertLengthEdges(Arbitrary.stream(Arbitrary.of(1)).apply(100).map(Stream::length));
+    }
+
+    @Test
+    public void shouldKeepSmallCollectionLengthsWithinTheSizeHint() {
+        for (int size = 1; size <= 2; size++) {
+            final int max = size;
+            assertThat(samples(Arbitrary.string(Gen.of('a')).apply(size).map(String::length)))
+                    .contains(0, size).allMatch(length -> length >= 0 && length <= max);
+            assertThat(samples(Arbitrary.list(Arbitrary.of(1)).apply(size).map(List::length)))
+                    .contains(0, size).allMatch(length -> length >= 0 && length <= max);
+            assertThat(samples(Arbitrary.stream(Arbitrary.of(1)).apply(size).map(Stream::length)))
+                    .contains(0, size).allMatch(length -> length >= 0 && length <= max);
+        }
+    }
+
+    @Test
+    public void shouldGenerateEmptyCollectionsWithoutDrawingElementsForNonpositiveSizes() {
+        for (int size : new int[] { 0, -1, Integer.MIN_VALUE }) {
+            assertThat(Arbitrary.string(Gen.fail()).apply(size).apply(RANDOM)).isEmpty();
+            assertThat(Arbitrary.list(Gen.fail().arbitrary()).apply(size).apply(RANDOM)).isEmpty();
+            assertThat(Arbitrary.stream(Gen.fail().arbitrary()).apply(size).apply(RANDOM)).isEmpty();
+        }
     }
 
     @Test
@@ -225,9 +271,21 @@ public class ArbitraryTest {
         final LocalDateTime median = LocalDateTime.of(2017, 2, 17, 3, 40);
         final Arbitrary<LocalDateTime> arbitrary = Arbitrary.localDateTime(median, ChronoUnit.YEARS);
 
-        final LocalDateTime date = arbitrary.apply(100).apply(predictableRandom);
+        final List<LocalDateTime> dates = samples(arbitrary.apply(100));
+        final List<LocalDateTime> edges = List.of(median.minusYears(100), median, median.plusYears(100));
 
-        assertThat(date).isEqualTo("2063-04-22T01:46:10.312");
+        assertThat(dates).containsAll(edges)
+                .allMatch(date -> !date.isBefore(median.minusYears(100)) && !date.isAfter(median.plusYears(100)));
+        assertThat(dates.count(edges::contains)).isBetween(400, 600);
+        assertThat(samples(arbitrary.apply(-100))).isEqualTo(dates);
+    }
+
+    @Test
+    public void shouldIncludeExactDateBoundariesForSubMillisecondRanges() {
+        final LocalDateTime median = LocalDateTime.of(2020, 2, 29, 12, 0, 0, 123456789);
+        final List<LocalDateTime> dates = samples(Arbitrary.localDateTime(median, ChronoUnit.NANOS).apply(1));
+        assertThat(dates).containsOnly(median.minusNanos(1), median, median.plusNanos(1))
+                .contains(median.minusNanos(1), median, median.plusNanos(1));
     }
 
     @Test
@@ -248,8 +306,8 @@ public class ArbitraryTest {
 
         Property.def("With size of 100 days, dates should be in range of +/- 100 days")
                 .forAll(arbitrary)
-                .suchThat(d -> d.isAfter(median.minusDays(100)) && d.isBefore(median.plusDays(100)))
-                .check(100, 1000);
+                .suchThat(d -> !d.isBefore(median.minusDays(100)) && !d.isAfter(median.plusDays(100)))
+                .check(new Random(0L), 100, 1000).assertIsSatisfied();
     }
 
     @Test
@@ -259,17 +317,18 @@ public class ArbitraryTest {
 
         Property.def("With negative size of -100 days, dates should be in range of +/- 100 days")
                 .forAll(arbitrary)
-                .suchThat(d -> d.isAfter(median.minusDays(100)) && d.isBefore(median.plusDays(100)))
-                .check(-100, 1000);
+                .suchThat(d -> !d.isBefore(median.minusDays(100)) && !d.isAfter(median.plusDays(100)))
+                .check(new Random(0L), -100, 1000).assertIsSatisfied();
     }
 
     @Test
-    public void shouldGenerateTwoDifferentSuccessiveDates(){
+    public void shouldGenerateVariedDatesAndReplayWithTheSameSeed(){
         final Arbitrary<LocalDateTime> dates = Arbitrary.localDateTime();
-        final LocalDateTime firstDate = dates.apply(100).apply(RANDOM);
-        final LocalDateTime secondDate = dates.apply(100).apply(RANDOM);
+        final Gen<LocalDateTime> gen = dates.apply(100);
+        final List<LocalDateTime> values = samples(gen);
 
-        assertThat(firstDate).isNotEqualTo(secondDate);
+        assertThat(values.distinct().size()).isGreaterThan(100);
+        assertThat(samples(gen)).isEqualTo(values);
     }
 
     // -- transform
@@ -282,6 +341,18 @@ public class ArbitraryTest {
     }
 
     // helpers
+
+    private static <T> List<T> samples(Gen<T> gen) {
+        final Random random = new Random(0L);
+        return List.fill(1000, () -> gen.apply(random));
+    }
+
+    private static void assertLengthEdges(Gen<Integer> lengths) {
+        final List<Integer> values = samples(lengths);
+        final List<Integer> edges = List.of(0, 1, 99, 100);
+        assertThat(values).containsAll(edges).allMatch(length -> length >= 0 && length <= 100);
+        assertThat(values.count(edges::contains)).isBetween(400, 650);
+    }
 
     /**
      * Represents arbitrary binary trees of a certain depth n with values of type int.

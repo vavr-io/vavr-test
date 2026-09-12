@@ -88,7 +88,7 @@ public class PropertyTest {
         final Arbitrary<Double> real = n -> Gen.choose(0, (double) n).filter(d -> d > .0d);
 
         // (∀a,b ∈ ℝ+ ∃c ∈ ℝ+ : a²+b²=c²) ≡ (∀a,b ∈ ℝ+ : √(a²+b²) ∈ ℝ+)
-        final Checkable property = Property.def("test").forAll(real, real).suchThat((a, b) -> Math.sqrt(a * a + b * b) > .0d);
+        final Checkable property = Property.def("test").forAll(real, real).suchThat((a, b) -> Math.hypot(a, b) > .0d);
         final CheckResult result = property.check();
 
         assertThat(result.isSatisfied()).isTrue();

@@ -75,8 +75,8 @@ public interface Gen<T> {
     }
 
     /**
-     * Chooses an int between min and max, bounds inclusive and numbers distributed according to the distribution of
-     * the underlying random number generator.
+     * Chooses an int between min and max, bounds inclusive. Half of the draws choose from the distinct
+     * bounds, their immediate neighbors, and -1, 0, and 1 when in range; the other half sample the full range.
      * <p>
      * Note: min and max are internally swapped if min &gt; max.
      *
@@ -90,13 +90,15 @@ public interface Gen<T> {
         } else {
             final int _min = Math.min(min, max);
             final int _max = Math.max(min, max);
-            return rng -> rng.nextInt(Math.abs(_max - _min) + 1) + _min;
+            return GenModule.withEdges(GenModule.chooseInt(_min, _max),
+                    List.of(_min, _max, _min + 1, _max - 1, -1, 0, 1)
+                            .filter(i -> i >= _min && i <= _max).distinct().sorted());
         }
     }
 
     /**
-     * Chooses a long between min and max, bounds inclusive and numbers distributed according to the distribution of
-     * the underlying random number generator.
+     * Chooses a long between min and max, bounds inclusive. Half of the draws choose from the distinct
+     * bounds, their immediate neighbors, and -1, 0, and 1 when in range; the other half sample the full range.
      * <p>
      * Note: min and max are internally swapped if min &gt; max.
      *
@@ -108,18 +110,18 @@ public interface Gen<T> {
         if (min == max) {
             return ignored -> min;
         } else {
-            return random -> {
-                final double d = random.nextDouble();
-                final long _min = Math.min(min, max);
-                final long _max = Math.max(min, max);
-                return (long) ((d * _max) + ((1.0 - d) * _min) + d);
-            };
+            final long _min = Math.min(min, max);
+            final long _max = Math.max(min, max);
+            return GenModule.withEdges(GenModule.chooseLong(_min, _max),
+                    List.of(_min, _max, _min + 1, _max - 1, -1L, 0L, 1L)
+                            .filter(l -> l >= _min && l <= _max).distinct().sorted());
         }
     }
 
     /**
-     * Chooses a double between min and max, bounds inclusive and numbers distributed according to the distribution
-     * of the underlying random number generator.
+     * Chooses a double between min and max, bounds inclusive. Half of the draws choose from the distinct
+     * bounds, their adjacent representable values, -1, 1, both signed zeros, and the smallest positive and
+     * negative nonzero values when in range; the other half sample the full range.
      * <p>
      * Note: min and max are internally swapped if min &gt; max.
      *
@@ -141,21 +143,26 @@ public interface Gen<T> {
         if (Double.isNaN(max)) {
             throw new IllegalArgumentException("max is not a number (NaN)");
         }
-        if (min == max) {
+        if (Double.compare(min, max) == 0) {
             return ignored -> min;
         } else {
-            return random -> {
+            final double _min = Math.min(min, max);
+            final double _max = Math.max(min, max);
+            final Gen<Double> gen = random -> {
                 final double d = random.nextDouble();
-                final double _min = Math.min(min, max);
-                final double _max = Math.max(min, max);
-                return d * _max + (1.0 - d) * _min;
+                return Math.max(_min, Math.min(_max, d * _max + (1.0 - d) * _min));
             };
+            return GenModule.withEdges(gen,
+                    List.of(_min, _max, Math.nextUp(_min), Math.nextDown(_max),
+                            -1.0, -Double.MIN_VALUE, -0.0, 0.0, Double.MIN_VALUE, 1.0)
+                            .filter(d -> Double.compare(d, _min) >= 0 && Double.compare(d, _max) <= 0)
+                            .distinct().sorted());
         }
     }
 
     /**
-     * Chooses a char between min and max, bounds inclusive and chars distributed according to the underlying random
-     * number generator.
+     * Chooses a char between min and max, bounds inclusive, favoring the bounds and their immediate neighbors
+     * as described by {@link #choose(int, int)}.
      * <p>
      * Note: min and max are internally swapped if min &gt; max.
      *
@@ -209,7 +216,7 @@ public interface Gen<T> {
         if (values.length == 0) {
             return Gen.fail("Empty array");
         } else {
-            return Gen.choose(0, values.length - 1).map(i -> values[i]);
+            return GenModule.chooseInt(0, values.length - 1).map(i -> values[i]);
         }
     }
 
@@ -295,7 +302,7 @@ public interface Gen<T> {
             throw new IllegalArgumentException("no generator with positive weight");
         }
         final int size = filtered.map(t -> t._1).sum().intValue();
-        return choose(1, size).flatMap(n -> GenModule.frequency(n, filtered.iterator()));
+        return GenModule.chooseInt(1, size).flatMap(n -> GenModule.frequency(n, filtered.iterator()));
     }
 
     /**
@@ -324,7 +331,7 @@ public interface Gen<T> {
         if (generators.length == 0) {
             throw new IllegalArgumentException("generators is empty");
         }
-        return choose(0, generators.length - 1).flatMap(i -> generators[i]);
+        return GenModule.chooseInt(0, generators.length - 1).flatMap(i -> generators[i]);
     }
 
     /**
@@ -422,28 +429,4 @@ public interface Gen<T> {
         Objects.requireNonNull(f, "f is null");
         return f.apply(this);
     }
-}
-
-interface GenModule {
-
-    /**
-     * Chooses a Gen according to the given frequencies.
-     *
-     * @param n    a random value between 0 and sum(frequencies) - 1
-     * @param iter a non-empty Iterator of (frequency, Gen) pairs
-     * @param <T>  type of generated values
-     * @return A value generator, choosen according to the given frequencies and the underlying n
-     */
-    static <T> Gen<T> frequency(int n, java.util.Iterator<Tuple2<Integer, Gen<T>>> iter) {
-        do {
-            final Tuple2<Integer, Gen<T>> freqGen = iter.next();
-            final int k = freqGen._1;
-            if (n <= k) {
-                return freqGen._2;
-            } else {
-                n = n - k;
-            }
-        } while (true);
-    }
-
 }
