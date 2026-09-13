@@ -145,18 +145,42 @@ An input that does not satisfy the precondition still uses an attempt. If no inp
 
 ## Inspecting results
 
+Predicates can explain a failure by returning a `PredicateResult` from `suchThatResult`:
+
+```java
+import io.vavr.test.Arbitrary;
+import io.vavr.test.PredicateResult;
+import io.vavr.test.Property;
+
+Property.def("integers are positive")
+        .forAll(Arbitrary.integer())
+        .suchThatResult(n -> n > 0
+                ? PredicateResult.success()
+                : PredicateResult.failure("Expected a positive integer, but got " + n))
+        .check()
+        .assertIsSatisfied();
+```
+
+The failure message appears alongside the counterexample in assertion errors. It is also included in the check's
+console output and available through `CheckResult.message()`. Use `impliesResult` for a postcondition that returns a
+`PredicateResult`; a rejected precondition skips the postcondition and discards its own failure message.
+Both methods support one to eight inputs and can be combined with boolean preconditions or postconditions.
+Existing `suchThat` and `implies` predicates continue to return booleans. An exception or a null predicate result
+produces an erroneous check rather than a falsified one.
+
 Every check returns a `CheckResult`:
 
 | Method | Meaning |
 | --- | --- |
 | `isSatisfied()` | No tested input falsified the property or caused an error |
-| `isFalsified()` | An input made the predicate return `false` |
+| `isFalsified()` | An input made the predicate return `false` or a failed `PredicateResult` |
 | `isErroneous()` | An error occurred while generating inputs or evaluating the property |
 | `isExhausted()` | The check was satisfied without exercising any applicable input |
 | `propertyName()` | The name passed to `Property.def` |
 | `count()` | The number of attempts performed, including inputs rejected by a precondition |
 | `sample()` | An optional Vavr tuple containing the failing inputs, when available |
 | `error()` | An optional error with details of the failure |
+| `message()` | An optional explanation supplied by the predicate that falsified the property |
 
 Use `assertIsSatisfied()`, `assertIsSatisfiedWithExhaustion(false)`, `assertIsFalsified()`, or `assertIsErroneous()` to assert the expected outcome. For the full API, see the [Javadoc](https://javadoc.io/doc/io.vavr/vavr-test).
 

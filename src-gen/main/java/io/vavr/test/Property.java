@@ -63,8 +63,9 @@ public class Property {
         }
     }
 
-    private static void logFalsified(String name, int currentTry, long millis) {
-        log(String.format("%s: Falsified after %s passed tests in %s ms.", name, currentTry - 1, millis));
+    private static void logFalsified(String name, int currentTry, long millis, String message) {
+        log(String.format("%s: Falsified after %s passed tests in %s ms.", name, currentTry - 1, millis)
+                + (message == null ? "" : " Message: " + message));
     }
 
     private static void logErroneous(String name, int currentTry, long millis, String errorMessage) {
@@ -278,6 +279,21 @@ public class Property {
             final CheckedFunction1<T1, Condition> proposition = (t1) -> new Condition(true, predicate.apply(t1));
             return new Property1<>(name, a1, proposition);
         }
+
+        /**
+         * Returns a checkable property whose predicate can explain a failure.
+         * A failed result contributes its message to the {@link CheckResult} and assertion errors.
+         * A thrown exception or a null result makes the check erroneous.
+         *
+         * @param predicate A 1-ary predicate returning a non-null {@link PredicateResult}
+         * @return a new {@code Property1} of 1 variables
+         * @throws NullPointerException if predicate is null
+         */
+        public Property1<T1> suchThatResult(CheckedFunction1<T1, PredicateResult> predicate) {
+            Objects.requireNonNull(predicate, "predicate is null");
+            final CheckedFunction1<T1, Condition> proposition = (t1) -> new Condition(true, predicate.apply(t1));
+            return new Property1<>(name, a1, proposition);
+        }
     }
 
     /**
@@ -305,6 +321,21 @@ public class Property {
          * @return a new {@code Property2} of 2 variables.
          */
         public Property2<T1, T2> suchThat(CheckedFunction2<T1, T2, Boolean> predicate) {
+            final CheckedFunction2<T1, T2, Condition> proposition = (t1, t2) -> new Condition(true, predicate.apply(t1, t2));
+            return new Property2<>(name, a1, a2, proposition);
+        }
+
+        /**
+         * Returns a checkable property whose predicate can explain a failure.
+         * A failed result contributes its message to the {@link CheckResult} and assertion errors.
+         * A thrown exception or a null result makes the check erroneous.
+         *
+         * @param predicate A 2-ary predicate returning a non-null {@link PredicateResult}
+         * @return a new {@code Property2} of 2 variables
+         * @throws NullPointerException if predicate is null
+         */
+        public Property2<T1, T2> suchThatResult(CheckedFunction2<T1, T2, PredicateResult> predicate) {
+            Objects.requireNonNull(predicate, "predicate is null");
             final CheckedFunction2<T1, T2, Condition> proposition = (t1, t2) -> new Condition(true, predicate.apply(t1, t2));
             return new Property2<>(name, a1, a2, proposition);
         }
@@ -338,6 +369,21 @@ public class Property {
          * @return a new {@code Property3} of 3 variables.
          */
         public Property3<T1, T2, T3> suchThat(CheckedFunction3<T1, T2, T3, Boolean> predicate) {
+            final CheckedFunction3<T1, T2, T3, Condition> proposition = (t1, t2, t3) -> new Condition(true, predicate.apply(t1, t2, t3));
+            return new Property3<>(name, a1, a2, a3, proposition);
+        }
+
+        /**
+         * Returns a checkable property whose predicate can explain a failure.
+         * A failed result contributes its message to the {@link CheckResult} and assertion errors.
+         * A thrown exception or a null result makes the check erroneous.
+         *
+         * @param predicate A 3-ary predicate returning a non-null {@link PredicateResult}
+         * @return a new {@code Property3} of 3 variables
+         * @throws NullPointerException if predicate is null
+         */
+        public Property3<T1, T2, T3> suchThatResult(CheckedFunction3<T1, T2, T3, PredicateResult> predicate) {
+            Objects.requireNonNull(predicate, "predicate is null");
             final CheckedFunction3<T1, T2, T3, Condition> proposition = (t1, t2, t3) -> new Condition(true, predicate.apply(t1, t2, t3));
             return new Property3<>(name, a1, a2, a3, proposition);
         }
@@ -377,6 +423,21 @@ public class Property {
             final CheckedFunction4<T1, T2, T3, T4, Condition> proposition = (t1, t2, t3, t4) -> new Condition(true, predicate.apply(t1, t2, t3, t4));
             return new Property4<>(name, a1, a2, a3, a4, proposition);
         }
+
+        /**
+         * Returns a checkable property whose predicate can explain a failure.
+         * A failed result contributes its message to the {@link CheckResult} and assertion errors.
+         * A thrown exception or a null result makes the check erroneous.
+         *
+         * @param predicate A 4-ary predicate returning a non-null {@link PredicateResult}
+         * @return a new {@code Property4} of 4 variables
+         * @throws NullPointerException if predicate is null
+         */
+        public Property4<T1, T2, T3, T4> suchThatResult(CheckedFunction4<T1, T2, T3, T4, PredicateResult> predicate) {
+            Objects.requireNonNull(predicate, "predicate is null");
+            final CheckedFunction4<T1, T2, T3, T4, Condition> proposition = (t1, t2, t3, t4) -> new Condition(true, predicate.apply(t1, t2, t3, t4));
+            return new Property4<>(name, a1, a2, a3, a4, proposition);
+        }
     }
 
     /**
@@ -413,6 +474,21 @@ public class Property {
          * @return a new {@code Property5} of 5 variables.
          */
         public Property5<T1, T2, T3, T4, T5> suchThat(CheckedFunction5<T1, T2, T3, T4, T5, Boolean> predicate) {
+            final CheckedFunction5<T1, T2, T3, T4, T5, Condition> proposition = (t1, t2, t3, t4, t5) -> new Condition(true, predicate.apply(t1, t2, t3, t4, t5));
+            return new Property5<>(name, a1, a2, a3, a4, a5, proposition);
+        }
+
+        /**
+         * Returns a checkable property whose predicate can explain a failure.
+         * A failed result contributes its message to the {@link CheckResult} and assertion errors.
+         * A thrown exception or a null result makes the check erroneous.
+         *
+         * @param predicate A 5-ary predicate returning a non-null {@link PredicateResult}
+         * @return a new {@code Property5} of 5 variables
+         * @throws NullPointerException if predicate is null
+         */
+        public Property5<T1, T2, T3, T4, T5> suchThatResult(CheckedFunction5<T1, T2, T3, T4, T5, PredicateResult> predicate) {
+            Objects.requireNonNull(predicate, "predicate is null");
             final CheckedFunction5<T1, T2, T3, T4, T5, Condition> proposition = (t1, t2, t3, t4, t5) -> new Condition(true, predicate.apply(t1, t2, t3, t4, t5));
             return new Property5<>(name, a1, a2, a3, a4, a5, proposition);
         }
@@ -458,6 +534,21 @@ public class Property {
             final CheckedFunction6<T1, T2, T3, T4, T5, T6, Condition> proposition = (t1, t2, t3, t4, t5, t6) -> new Condition(true, predicate.apply(t1, t2, t3, t4, t5, t6));
             return new Property6<>(name, a1, a2, a3, a4, a5, a6, proposition);
         }
+
+        /**
+         * Returns a checkable property whose predicate can explain a failure.
+         * A failed result contributes its message to the {@link CheckResult} and assertion errors.
+         * A thrown exception or a null result makes the check erroneous.
+         *
+         * @param predicate A 6-ary predicate returning a non-null {@link PredicateResult}
+         * @return a new {@code Property6} of 6 variables
+         * @throws NullPointerException if predicate is null
+         */
+        public Property6<T1, T2, T3, T4, T5, T6> suchThatResult(CheckedFunction6<T1, T2, T3, T4, T5, T6, PredicateResult> predicate) {
+            Objects.requireNonNull(predicate, "predicate is null");
+            final CheckedFunction6<T1, T2, T3, T4, T5, T6, Condition> proposition = (t1, t2, t3, t4, t5, t6) -> new Condition(true, predicate.apply(t1, t2, t3, t4, t5, t6));
+            return new Property6<>(name, a1, a2, a3, a4, a5, a6, proposition);
+        }
     }
 
     /**
@@ -500,6 +591,21 @@ public class Property {
          * @return a new {@code Property7} of 7 variables.
          */
         public Property7<T1, T2, T3, T4, T5, T6, T7> suchThat(CheckedFunction7<T1, T2, T3, T4, T5, T6, T7, Boolean> predicate) {
+            final CheckedFunction7<T1, T2, T3, T4, T5, T6, T7, Condition> proposition = (t1, t2, t3, t4, t5, t6, t7) -> new Condition(true, predicate.apply(t1, t2, t3, t4, t5, t6, t7));
+            return new Property7<>(name, a1, a2, a3, a4, a5, a6, a7, proposition);
+        }
+
+        /**
+         * Returns a checkable property whose predicate can explain a failure.
+         * A failed result contributes its message to the {@link CheckResult} and assertion errors.
+         * A thrown exception or a null result makes the check erroneous.
+         *
+         * @param predicate A 7-ary predicate returning a non-null {@link PredicateResult}
+         * @return a new {@code Property7} of 7 variables
+         * @throws NullPointerException if predicate is null
+         */
+        public Property7<T1, T2, T3, T4, T5, T6, T7> suchThatResult(CheckedFunction7<T1, T2, T3, T4, T5, T6, T7, PredicateResult> predicate) {
+            Objects.requireNonNull(predicate, "predicate is null");
             final CheckedFunction7<T1, T2, T3, T4, T5, T6, T7, Condition> proposition = (t1, t2, t3, t4, t5, t6, t7) -> new Condition(true, predicate.apply(t1, t2, t3, t4, t5, t6, t7));
             return new Property7<>(name, a1, a2, a3, a4, a5, a6, a7, proposition);
         }
@@ -551,6 +657,21 @@ public class Property {
             final CheckedFunction8<T1, T2, T3, T4, T5, T6, T7, T8, Condition> proposition = (t1, t2, t3, t4, t5, t6, t7, t8) -> new Condition(true, predicate.apply(t1, t2, t3, t4, t5, t6, t7, t8));
             return new Property8<>(name, a1, a2, a3, a4, a5, a6, a7, a8, proposition);
         }
+
+        /**
+         * Returns a checkable property whose predicate can explain a failure.
+         * A failed result contributes its message to the {@link CheckResult} and assertion errors.
+         * A thrown exception or a null result makes the check erroneous.
+         *
+         * @param predicate A 8-ary predicate returning a non-null {@link PredicateResult}
+         * @return a new {@code Property8} of 8 variables
+         * @throws NullPointerException if predicate is null
+         */
+        public Property8<T1, T2, T3, T4, T5, T6, T7, T8> suchThatResult(CheckedFunction8<T1, T2, T3, T4, T5, T6, T7, T8, PredicateResult> predicate) {
+            Objects.requireNonNull(predicate, "predicate is null");
+            final CheckedFunction8<T1, T2, T3, T4, T5, T6, T7, T8, Condition> proposition = (t1, t2, t3, t4, t5, t6, t7, t8) -> new Condition(true, predicate.apply(t1, t2, t3, t4, t5, t6, t7, t8));
+            return new Property8<>(name, a1, a2, a3, a4, a5, a6, a7, a8, proposition);
+        }
     }
 
     /**
@@ -586,6 +707,29 @@ public class Property {
             return new Property1<>(name, a1, implication);
         }
 
+        /**
+         * Returns an implication whose postcondition can explain a failure.
+         * The postcondition is evaluated only when this property holds; messages from
+         * rejected preconditions are discarded. A thrown exception or a null result
+         * makes the check erroneous.
+         *
+         * @param postcondition The postcondition returning a non-null {@link PredicateResult}
+         * @return A new Checkable implication
+         * @throws NullPointerException if postcondition is null
+         */
+        public Checkable impliesResult(CheckedFunction1<T1, PredicateResult> postcondition) {
+            Objects.requireNonNull(postcondition, "postcondition is null");
+            final CheckedFunction1<T1, Condition> implication = (t1) -> {
+                final Condition precondition = predicate.apply(t1);
+                if (precondition.isFalse()) {
+                    return Condition.EX_FALSO_QUODLIBET;
+                } else {
+                    return new Condition(true, postcondition.apply(t1));
+                }
+            };
+            return new Property1<>(name, a1, implication);
+        }
+
         @Override
         public CheckResult check(Random random, int size, int tries) {
             Objects.requireNonNull(random, "random is null");
@@ -604,8 +748,8 @@ public class Property {
                             if (condition.precondition) {
                                 exhausted = false;
                                 if (!condition.postcondition) {
-                                    logFalsified(name, i, System.currentTimeMillis() - startTime);
-                                    return new CheckResult.Falsified(name, i, Tuple.of(val1));
+                                    logFalsified(name, i, System.currentTimeMillis() - startTime, condition.message);
+                                    return new CheckResult.Falsified(name, i, Tuple.of(val1), condition.message);
                                 }
                             }
                         } catch(CheckError err) {
@@ -661,6 +805,29 @@ public class Property {
             return new Property2<>(name, a1, a2, implication);
         }
 
+        /**
+         * Returns an implication whose postcondition can explain a failure.
+         * The postcondition is evaluated only when this property holds; messages from
+         * rejected preconditions are discarded. A thrown exception or a null result
+         * makes the check erroneous.
+         *
+         * @param postcondition The postcondition returning a non-null {@link PredicateResult}
+         * @return A new Checkable implication
+         * @throws NullPointerException if postcondition is null
+         */
+        public Checkable impliesResult(CheckedFunction2<T1, T2, PredicateResult> postcondition) {
+            Objects.requireNonNull(postcondition, "postcondition is null");
+            final CheckedFunction2<T1, T2, Condition> implication = (t1, t2) -> {
+                final Condition precondition = predicate.apply(t1, t2);
+                if (precondition.isFalse()) {
+                    return Condition.EX_FALSO_QUODLIBET;
+                } else {
+                    return new Condition(true, postcondition.apply(t1, t2));
+                }
+            };
+            return new Property2<>(name, a1, a2, implication);
+        }
+
         @Override
         public CheckResult check(Random random, int size, int tries) {
             Objects.requireNonNull(random, "random is null");
@@ -681,8 +848,8 @@ public class Property {
                             if (condition.precondition) {
                                 exhausted = false;
                                 if (!condition.postcondition) {
-                                    logFalsified(name, i, System.currentTimeMillis() - startTime);
-                                    return new CheckResult.Falsified(name, i, Tuple.of(val1, val2));
+                                    logFalsified(name, i, System.currentTimeMillis() - startTime, condition.message);
+                                    return new CheckResult.Falsified(name, i, Tuple.of(val1, val2), condition.message);
                                 }
                             }
                         } catch(CheckError err) {
@@ -740,6 +907,29 @@ public class Property {
             return new Property3<>(name, a1, a2, a3, implication);
         }
 
+        /**
+         * Returns an implication whose postcondition can explain a failure.
+         * The postcondition is evaluated only when this property holds; messages from
+         * rejected preconditions are discarded. A thrown exception or a null result
+         * makes the check erroneous.
+         *
+         * @param postcondition The postcondition returning a non-null {@link PredicateResult}
+         * @return A new Checkable implication
+         * @throws NullPointerException if postcondition is null
+         */
+        public Checkable impliesResult(CheckedFunction3<T1, T2, T3, PredicateResult> postcondition) {
+            Objects.requireNonNull(postcondition, "postcondition is null");
+            final CheckedFunction3<T1, T2, T3, Condition> implication = (t1, t2, t3) -> {
+                final Condition precondition = predicate.apply(t1, t2, t3);
+                if (precondition.isFalse()) {
+                    return Condition.EX_FALSO_QUODLIBET;
+                } else {
+                    return new Condition(true, postcondition.apply(t1, t2, t3));
+                }
+            };
+            return new Property3<>(name, a1, a2, a3, implication);
+        }
+
         @Override
         public CheckResult check(Random random, int size, int tries) {
             Objects.requireNonNull(random, "random is null");
@@ -762,8 +952,8 @@ public class Property {
                             if (condition.precondition) {
                                 exhausted = false;
                                 if (!condition.postcondition) {
-                                    logFalsified(name, i, System.currentTimeMillis() - startTime);
-                                    return new CheckResult.Falsified(name, i, Tuple.of(val1, val2, val3));
+                                    logFalsified(name, i, System.currentTimeMillis() - startTime, condition.message);
+                                    return new CheckResult.Falsified(name, i, Tuple.of(val1, val2, val3), condition.message);
                                 }
                             }
                         } catch(CheckError err) {
@@ -823,6 +1013,29 @@ public class Property {
             return new Property4<>(name, a1, a2, a3, a4, implication);
         }
 
+        /**
+         * Returns an implication whose postcondition can explain a failure.
+         * The postcondition is evaluated only when this property holds; messages from
+         * rejected preconditions are discarded. A thrown exception or a null result
+         * makes the check erroneous.
+         *
+         * @param postcondition The postcondition returning a non-null {@link PredicateResult}
+         * @return A new Checkable implication
+         * @throws NullPointerException if postcondition is null
+         */
+        public Checkable impliesResult(CheckedFunction4<T1, T2, T3, T4, PredicateResult> postcondition) {
+            Objects.requireNonNull(postcondition, "postcondition is null");
+            final CheckedFunction4<T1, T2, T3, T4, Condition> implication = (t1, t2, t3, t4) -> {
+                final Condition precondition = predicate.apply(t1, t2, t3, t4);
+                if (precondition.isFalse()) {
+                    return Condition.EX_FALSO_QUODLIBET;
+                } else {
+                    return new Condition(true, postcondition.apply(t1, t2, t3, t4));
+                }
+            };
+            return new Property4<>(name, a1, a2, a3, a4, implication);
+        }
+
         @Override
         public CheckResult check(Random random, int size, int tries) {
             Objects.requireNonNull(random, "random is null");
@@ -847,8 +1060,8 @@ public class Property {
                             if (condition.precondition) {
                                 exhausted = false;
                                 if (!condition.postcondition) {
-                                    logFalsified(name, i, System.currentTimeMillis() - startTime);
-                                    return new CheckResult.Falsified(name, i, Tuple.of(val1, val2, val3, val4));
+                                    logFalsified(name, i, System.currentTimeMillis() - startTime, condition.message);
+                                    return new CheckResult.Falsified(name, i, Tuple.of(val1, val2, val3, val4), condition.message);
                                 }
                             }
                         } catch(CheckError err) {
@@ -910,6 +1123,29 @@ public class Property {
             return new Property5<>(name, a1, a2, a3, a4, a5, implication);
         }
 
+        /**
+         * Returns an implication whose postcondition can explain a failure.
+         * The postcondition is evaluated only when this property holds; messages from
+         * rejected preconditions are discarded. A thrown exception or a null result
+         * makes the check erroneous.
+         *
+         * @param postcondition The postcondition returning a non-null {@link PredicateResult}
+         * @return A new Checkable implication
+         * @throws NullPointerException if postcondition is null
+         */
+        public Checkable impliesResult(CheckedFunction5<T1, T2, T3, T4, T5, PredicateResult> postcondition) {
+            Objects.requireNonNull(postcondition, "postcondition is null");
+            final CheckedFunction5<T1, T2, T3, T4, T5, Condition> implication = (t1, t2, t3, t4, t5) -> {
+                final Condition precondition = predicate.apply(t1, t2, t3, t4, t5);
+                if (precondition.isFalse()) {
+                    return Condition.EX_FALSO_QUODLIBET;
+                } else {
+                    return new Condition(true, postcondition.apply(t1, t2, t3, t4, t5));
+                }
+            };
+            return new Property5<>(name, a1, a2, a3, a4, a5, implication);
+        }
+
         @Override
         public CheckResult check(Random random, int size, int tries) {
             Objects.requireNonNull(random, "random is null");
@@ -936,8 +1172,8 @@ public class Property {
                             if (condition.precondition) {
                                 exhausted = false;
                                 if (!condition.postcondition) {
-                                    logFalsified(name, i, System.currentTimeMillis() - startTime);
-                                    return new CheckResult.Falsified(name, i, Tuple.of(val1, val2, val3, val4, val5));
+                                    logFalsified(name, i, System.currentTimeMillis() - startTime, condition.message);
+                                    return new CheckResult.Falsified(name, i, Tuple.of(val1, val2, val3, val4, val5), condition.message);
                                 }
                             }
                         } catch(CheckError err) {
@@ -1001,6 +1237,29 @@ public class Property {
             return new Property6<>(name, a1, a2, a3, a4, a5, a6, implication);
         }
 
+        /**
+         * Returns an implication whose postcondition can explain a failure.
+         * The postcondition is evaluated only when this property holds; messages from
+         * rejected preconditions are discarded. A thrown exception or a null result
+         * makes the check erroneous.
+         *
+         * @param postcondition The postcondition returning a non-null {@link PredicateResult}
+         * @return A new Checkable implication
+         * @throws NullPointerException if postcondition is null
+         */
+        public Checkable impliesResult(CheckedFunction6<T1, T2, T3, T4, T5, T6, PredicateResult> postcondition) {
+            Objects.requireNonNull(postcondition, "postcondition is null");
+            final CheckedFunction6<T1, T2, T3, T4, T5, T6, Condition> implication = (t1, t2, t3, t4, t5, t6) -> {
+                final Condition precondition = predicate.apply(t1, t2, t3, t4, t5, t6);
+                if (precondition.isFalse()) {
+                    return Condition.EX_FALSO_QUODLIBET;
+                } else {
+                    return new Condition(true, postcondition.apply(t1, t2, t3, t4, t5, t6));
+                }
+            };
+            return new Property6<>(name, a1, a2, a3, a4, a5, a6, implication);
+        }
+
         @Override
         public CheckResult check(Random random, int size, int tries) {
             Objects.requireNonNull(random, "random is null");
@@ -1029,8 +1288,8 @@ public class Property {
                             if (condition.precondition) {
                                 exhausted = false;
                                 if (!condition.postcondition) {
-                                    logFalsified(name, i, System.currentTimeMillis() - startTime);
-                                    return new CheckResult.Falsified(name, i, Tuple.of(val1, val2, val3, val4, val5, val6));
+                                    logFalsified(name, i, System.currentTimeMillis() - startTime, condition.message);
+                                    return new CheckResult.Falsified(name, i, Tuple.of(val1, val2, val3, val4, val5, val6), condition.message);
                                 }
                             }
                         } catch(CheckError err) {
@@ -1096,6 +1355,29 @@ public class Property {
             return new Property7<>(name, a1, a2, a3, a4, a5, a6, a7, implication);
         }
 
+        /**
+         * Returns an implication whose postcondition can explain a failure.
+         * The postcondition is evaluated only when this property holds; messages from
+         * rejected preconditions are discarded. A thrown exception or a null result
+         * makes the check erroneous.
+         *
+         * @param postcondition The postcondition returning a non-null {@link PredicateResult}
+         * @return A new Checkable implication
+         * @throws NullPointerException if postcondition is null
+         */
+        public Checkable impliesResult(CheckedFunction7<T1, T2, T3, T4, T5, T6, T7, PredicateResult> postcondition) {
+            Objects.requireNonNull(postcondition, "postcondition is null");
+            final CheckedFunction7<T1, T2, T3, T4, T5, T6, T7, Condition> implication = (t1, t2, t3, t4, t5, t6, t7) -> {
+                final Condition precondition = predicate.apply(t1, t2, t3, t4, t5, t6, t7);
+                if (precondition.isFalse()) {
+                    return Condition.EX_FALSO_QUODLIBET;
+                } else {
+                    return new Condition(true, postcondition.apply(t1, t2, t3, t4, t5, t6, t7));
+                }
+            };
+            return new Property7<>(name, a1, a2, a3, a4, a5, a6, a7, implication);
+        }
+
         @Override
         public CheckResult check(Random random, int size, int tries) {
             Objects.requireNonNull(random, "random is null");
@@ -1126,8 +1408,8 @@ public class Property {
                             if (condition.precondition) {
                                 exhausted = false;
                                 if (!condition.postcondition) {
-                                    logFalsified(name, i, System.currentTimeMillis() - startTime);
-                                    return new CheckResult.Falsified(name, i, Tuple.of(val1, val2, val3, val4, val5, val6, val7));
+                                    logFalsified(name, i, System.currentTimeMillis() - startTime, condition.message);
+                                    return new CheckResult.Falsified(name, i, Tuple.of(val1, val2, val3, val4, val5, val6, val7), condition.message);
                                 }
                             }
                         } catch(CheckError err) {
@@ -1195,6 +1477,29 @@ public class Property {
             return new Property8<>(name, a1, a2, a3, a4, a5, a6, a7, a8, implication);
         }
 
+        /**
+         * Returns an implication whose postcondition can explain a failure.
+         * The postcondition is evaluated only when this property holds; messages from
+         * rejected preconditions are discarded. A thrown exception or a null result
+         * makes the check erroneous.
+         *
+         * @param postcondition The postcondition returning a non-null {@link PredicateResult}
+         * @return A new Checkable implication
+         * @throws NullPointerException if postcondition is null
+         */
+        public Checkable impliesResult(CheckedFunction8<T1, T2, T3, T4, T5, T6, T7, T8, PredicateResult> postcondition) {
+            Objects.requireNonNull(postcondition, "postcondition is null");
+            final CheckedFunction8<T1, T2, T3, T4, T5, T6, T7, T8, Condition> implication = (t1, t2, t3, t4, t5, t6, t7, t8) -> {
+                final Condition precondition = predicate.apply(t1, t2, t3, t4, t5, t6, t7, t8);
+                if (precondition.isFalse()) {
+                    return Condition.EX_FALSO_QUODLIBET;
+                } else {
+                    return new Condition(true, postcondition.apply(t1, t2, t3, t4, t5, t6, t7, t8));
+                }
+            };
+            return new Property8<>(name, a1, a2, a3, a4, a5, a6, a7, a8, implication);
+        }
+
         @Override
         public CheckResult check(Random random, int size, int tries) {
             Objects.requireNonNull(random, "random is null");
@@ -1227,8 +1532,8 @@ public class Property {
                             if (condition.precondition) {
                                 exhausted = false;
                                 if (!condition.postcondition) {
-                                    logFalsified(name, i, System.currentTimeMillis() - startTime);
-                                    return new CheckResult.Falsified(name, i, Tuple.of(val1, val2, val3, val4, val5, val6, val7, val8));
+                                    logFalsified(name, i, System.currentTimeMillis() - startTime, condition.message);
+                                    return new CheckResult.Falsified(name, i, Tuple.of(val1, val2, val3, val4, val5, val6, val7, val8), condition.message);
                                 }
                             }
                         } catch(CheckError err) {
@@ -1258,10 +1563,20 @@ public class Property {
 
         final boolean precondition;
         final boolean postcondition;
+        final String message;
 
         Condition(boolean precondition, boolean postcondition) {
+            this(precondition, postcondition, null);
+        }
+
+        Condition(boolean precondition, PredicateResult result) {
+            this(precondition, Objects.requireNonNull(result, "predicate result is null").isSuccess(), result.message().getOrNull());
+        }
+
+        private Condition(boolean precondition, boolean postcondition, String message) {
             this.precondition = precondition;
             this.postcondition = postcondition;
+            this.message = message;
         }
 
         // ¬(p => q) ≡ ¬(¬p ∨ q) ≡ p ∧ ¬q

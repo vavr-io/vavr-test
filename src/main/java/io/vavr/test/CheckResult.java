@@ -96,6 +96,15 @@ public interface CheckResult {
     Option<Error> error();
 
     /**
+     * An optional explanation supplied by a predicate that falsified the property.
+     *
+     * @return the predicate's failure message, or none when no message was supplied
+     */
+    default Option<String> message() {
+        return Option.none();
+    }
+
+    /**
      * Asserts that this CheckResult is satisfied.
      *
      * @throws AssertionError if this CheckResult is not satisfied.
@@ -234,11 +243,17 @@ public interface CheckResult {
         private final String propertyName;
         private final int count;
         private transient final Tuple sample;
+        private final String message;
 
         Falsified(String propertyName, int count, Tuple sample) {
+            this(propertyName, count, sample, null);
+        }
+
+        Falsified(String propertyName, int count, Tuple sample, String message) {
             this.propertyName = propertyName;
             this.count = count;
             this.sample = sample;
+            this.message = message;
         }
 
         @Override
@@ -277,6 +292,11 @@ public interface CheckResult {
         }
 
         @Override
+        public Option<String> message() {
+            return Option.of(message);
+        }
+
+        @Override
         public Option<Error> error() {
             return Option.none();
         }
@@ -289,7 +309,8 @@ public interface CheckResult {
                 final Falsified that = (Falsified) o;
                 return Objects.equals(this.propertyName, that.propertyName)
                         && this.count == that.count
-                        && Objects.equals(this.sample, that.sample);
+                        && Objects.equals(this.sample, that.sample)
+                        && Objects.equals(this.message, that.message);
             } else {
                 return false;
             }
@@ -297,12 +318,13 @@ public interface CheckResult {
 
         @Override
         public int hashCode() {
-            return Objects.hash(propertyName, count, sample);
+            return message == null ? Objects.hash(propertyName, count, sample) : Objects.hash(propertyName, count, sample, message);
         }
 
         @Override
         public String toString() {
-            return String.format("%s(propertyName = %s, count = %s, sample = %s)", getClass().getSimpleName(), propertyName, count, sample);
+            return String.format("%s(propertyName = %s, count = %s, sample = %s%s)", getClass().getSimpleName(), propertyName, count, sample,
+                    message == null ? "" : ", message = " + message);
         }
     }
 
