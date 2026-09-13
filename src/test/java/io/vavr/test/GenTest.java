@@ -94,6 +94,28 @@ public class GenTest {
         assertForAll(() -> Gen.choose(0, 0).apply(RANDOM), i -> i == 0);
     }
 
+    @Test
+    public void shouldFavorIntEdgesWhileSamplingTheFullRange() {
+        assertEdgeCoverage(Gen.choose(-10000, 10000), List.of(-10000, -9999, -1, 0, 1, 9999, 10000));
+    }
+
+    @Test
+    public void shouldChooseAcrossWideIntRangesWithoutOverflow() {
+        final int[][] ranges = {
+                { Integer.MIN_VALUE, Integer.MAX_VALUE },
+                { Integer.MIN_VALUE, 0 },
+                { -1, Integer.MAX_VALUE },
+                { Integer.MIN_VALUE, Integer.MIN_VALUE + 10 },
+                { Integer.MAX_VALUE - 10, Integer.MAX_VALUE }
+        };
+        for (int[] range : ranges) {
+            final List<Integer> values = samples(Gen.choose(range[0], range[1]));
+            assertThat(values).allMatch(i -> i >= range[0] && i <= range[1]);
+            assertThat(values).contains(range[0], range[1]);
+            assertThat(samples(Gen.choose(range[1], range[0]))).isEqualTo(values);
+        }
+    }
+
     // -- choose(long, long)
 
     @Test
@@ -106,6 +128,37 @@ public class GenTest {
         assertForAll(() -> Gen.choose(0L, 0L).apply(RANDOM), l -> l == 0L);
     }
 
+    @Test
+    public void shouldFavorLongEdgesWhileSamplingTheFullRange() {
+        assertEdgeCoverage(Gen.choose(Long.MIN_VALUE, Long.MAX_VALUE),
+                List.of(Long.MIN_VALUE, Long.MIN_VALUE + 1, -1L, 0L, 1L, Long.MAX_VALUE - 1, Long.MAX_VALUE));
+    }
+
+    @Test
+    public void shouldChooseAcrossWideLongRangesWithoutOverflow() {
+        final long[][] ranges = {
+                { Long.MIN_VALUE, Long.MAX_VALUE },
+                { Long.MIN_VALUE, 0 },
+                { -1, Long.MAX_VALUE },
+                { 0, Long.MAX_VALUE - 1 },
+                { Long.MIN_VALUE, Long.MIN_VALUE + 10 },
+                { Long.MAX_VALUE - 10, Long.MAX_VALUE }
+        };
+        for (long[] range : ranges) {
+            final List<Long> values = samples(Gen.choose(range[0], range[1]));
+            assertThat(values).allMatch(l -> l >= range[0] && l <= range[1]);
+            assertThat(values).contains(range[0], range[1]);
+            assertThat(samples(Gen.choose(range[1], range[0]))).isEqualTo(values);
+        }
+    }
+
+    @Test
+    public void shouldReachEveryLongInNarrowRangesBeyondDoublePrecision() {
+        for (long min : new long[] { Long.MIN_VALUE, 1L << 53, Long.MAX_VALUE - 10 }) {
+            assertThat(samples(Gen.choose(min, min + 10))).containsAll(List.rangeClosed(min, min + 10));
+        }
+    }
+
     // -- choose(double, double)
 
     @Test
@@ -116,6 +169,40 @@ public class GenTest {
     @Test
     public void shouldChooseDoubleWhenMinEqualsMax() {
         assertForAll(() -> Gen.choose(0.0d, 0.0d).apply(RANDOM), d -> d == 0.0d);
+    }
+
+    @Test
+    public void shouldFavorDoubleEdgesWhileSamplingTheFullRange() {
+        assertEdgeCoverage(Gen.choose(-10000.0, 10000.0), List.of(-10000.0, Math.nextUp(-10000.0),
+                -1.0, -Double.MIN_VALUE, -0.0, 0.0, Double.MIN_VALUE, 1.0, Math.nextDown(10000.0), 10000.0));
+    }
+
+    @Test
+    public void shouldChooseFiniteDoublesWithinExtremeAndNarrowRanges() {
+        final double[][] ranges = {
+                { -Double.MAX_VALUE, Double.MAX_VALUE },
+                { Math.nextDown(Double.MAX_VALUE), Double.MAX_VALUE },
+                { -Double.MAX_VALUE, Math.nextUp(-Double.MAX_VALUE) },
+                { Double.MIN_VALUE, 2 * Double.MIN_VALUE },
+                { -2 * Double.MIN_VALUE, -Double.MIN_VALUE },
+                { 0.0, 10000.0 },
+                { -10000.0, -0.0 }
+        };
+        for (double[] range : ranges) {
+            final List<Double> values = samples(Gen.choose(range[0], range[1]));
+            assertThat(values).allMatch(d -> Double.isFinite(d)
+                    && Double.compare(d, range[0]) >= 0 && Double.compare(d, range[1]) <= 0);
+            assertThat(values).contains(range[0], range[1]);
+            assertThat(samples(Gen.choose(range[1], range[0]))).isEqualTo(values);
+        }
+    }
+
+    @Test
+    public void shouldGenerateBothSignedZerosWhenTheyAreTheBounds() {
+        assertThat(samples(Gen.choose(-0.0, 0.0))).containsOnly(-0.0, 0.0).contains(-0.0, 0.0);
+        assertThat(samples(Gen.choose(0.0, -0.0))).isEqualTo(samples(Gen.choose(-0.0, 0.0)));
+        assertThat(samples(Gen.choose(-0.0, -0.0))).containsOnly(-0.0);
+        assertThat(samples(Gen.choose(0.0, 0.0))).containsOnly(0.0);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -158,6 +245,44 @@ public class GenTest {
     @Test
     public void shouldChooseCharWhenMinEqualsMax() {
         assertForAll(() -> Gen.choose('a', 'a').apply(RANDOM), c -> c == 'a');
+    }
+
+    @Test
+    public void shouldFavorCharRangeBoundaries() {
+        assertEdgeCoverage(Gen.choose(Character.MIN_VALUE, Character.MAX_VALUE),
+                List.of(Character.MIN_VALUE, (char) 1, (char) (Character.MAX_VALUE - 1), Character.MAX_VALUE));
+        assertThat(samples(Gen.choose('z', 'a'))).isEqualTo(samples(Gen.choose('a', 'z')));
+    }
+
+    @Test
+    public void shouldNotFavorPositionsInExplicitChoices() {
+        final List<Integer> values = List.range(0, 10);
+        final List<Gen<Integer>> generators = values.map(Gen::of);
+        assertUniformChoices(Gen.choose(values.toJavaArray(Integer[]::new)));
+        assertUniformChoices(Gen.choose(values));
+        assertUniformChoices(Gen.choose("0123456789".toCharArray()).map(c -> c - '0'));
+        assertUniformChoices(Gen.oneOf(generators));
+        assertUniformChoices(Gen.oneOf(Gen.of(0), Gen.of(1), Gen.of(2), Gen.of(3), Gen.of(4),
+                Gen.of(5), Gen.of(6), Gen.of(7), Gen.of(8), Gen.of(9)));
+    }
+
+    @Test
+    public void shouldPreserveGeneratorWeightsWithoutFavoringFirstOrLast() {
+        final List<Integer> values = samples(Gen.frequency(
+                Tuple.of(1, Gen.of(0)), Tuple.of(8, Gen.of(1)), Tuple.of(1, Gen.of(2))));
+        assertThat(values.count(i -> i == 0)).isBetween(70, 130);
+        assertThat(values.count(i -> i == 1)).isBetween(750, 850);
+        assertThat(values.count(i -> i == 2)).isBetween(70, 130);
+    }
+
+    @Test
+    public void shouldReplayWithTheSameSeedWhenReusingAGenerator() {
+        final Gen<Integer> integers = Gen.choose(-10000, 10000);
+        final Gen<Long> longs = Gen.choose(Long.MIN_VALUE, Long.MAX_VALUE);
+        final Gen<Double> doubles = Gen.choose(-Double.MAX_VALUE, Double.MAX_VALUE);
+        assertThat(samples(integers)).isEqualTo(samples(integers));
+        assertThat(samples(longs)).isEqualTo(samples(longs));
+        assertThat(samples(doubles)).isEqualTo(samples(doubles));
     }
 
     // -- choose(array)
@@ -377,6 +502,25 @@ public class GenTest {
     }
 
     // helpers
+
+    private static <T> List<T> samples(Gen<T> gen) {
+        final Random random = new Random(0L);
+        return List.fill(TRIES, () -> gen.apply(random));
+    }
+
+    private static <T> void assertEdgeCoverage(Gen<T> gen, List<T> edges) {
+        final List<T> values = samples(gen);
+        assertThat(values).containsAll(edges);
+        assertThat(values.count(edges::contains)).isBetween(400, 600);
+    }
+
+    private static void assertUniformChoices(Gen<Integer> gen) {
+        final List<Integer> values = samples(gen);
+        for (int i = 0; i < 10; i++) {
+            final int value = i;
+            assertThat(values.count(n -> n == value)).isBetween(70, 130);
+        }
+    }
 
     <T> void assertForAll(Supplier<T> supplier, Predicate<T> property) {
         for (int i = 0; i < TRIES; i++) {

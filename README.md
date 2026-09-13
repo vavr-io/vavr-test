@@ -75,6 +75,16 @@ By default, `check()` makes up to 1,000 attempts with a generator size of 100, s
 | `Arbitrary.list(Arbitrary.integer())` | Vavr lists with lengths from 0 to `size` |
 | `Arbitrary.stream(Arbitrary.integer())` | Vavr streams with lengths from 0 to `size` |
 
+Range generators favor boundary values and edge cases. Half of the draws select from distinct in-range endpoints,
+their nearest neighbors, and -1, 0, and 1; the other half sample the full range. Double ranges also include both
+signed zeros and the smallest positive and negative nonzero values when in range. Explicit array, iterable, and
+enum choices remain uniform, and `Gen.frequency` preserves the supplied weights.
+
+Strings, lists, and streams use the same bias for their lengths, making empty, singleton, maximum-length, and
+one-shorter inputs common. Nonpositive sizes produce empty strings and collections. `Arbitrary.localDateTime`
+devotes half of its draws to the two range boundaries and the median, with the rest sampled at millisecond resolution.
+The bias uses the supplied random source, so a fixed seed remains reproducible; sequences differ from earlier versions.
+
 Both `Gen` and `Arbitrary` support `map`, `flatMap`, and `filter`. Use `map` to transform values and `flatMap` to generate values that depend on earlier choices. For example, this generator produces integer ranges whose upper bound is at least their lower bound:
 
 ```java

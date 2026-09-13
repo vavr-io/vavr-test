@@ -202,12 +202,15 @@ public interface Arbitrary<T> {
     }
 
     /**
-     * Generates arbitrary integer values.
+     * Generates arbitrary integer values between {@code -abs(size)} and {@code abs(size)}, clipped to the
+     * integer range, favoring boundaries and values around zero as described by {@link Gen#choose(int, int)}.
      *
      * @return A new Arbitrary of Integer
      */
     static Arbitrary<Integer> integer() {
-        return size -> Gen.choose(-size, size);
+        return size -> size == Integer.MIN_VALUE
+                ? Gen.choose(Integer.MIN_VALUE, Integer.MAX_VALUE)
+                : Gen.choose(-size, size);
     }
 
     /**
@@ -235,7 +238,8 @@ public interface Arbitrary<T> {
     /**
      * Generates arbitrary {@link LocalDateTime}s. All generated values are drawn from a range with {@code median}
      * as center and {@code median +/- size} as included boundaries. {@code unit} defines the chronological unit
-     * of {@code size}.
+     * of {@code size}. Half of the draws choose the range boundaries or the median; the other half sample
+     * the range at millisecond resolution. Negative sizes are treated as their absolute value.
      *
      * <p>
      * Example:
@@ -256,16 +260,20 @@ public interface Arbitrary<T> {
             if(size == 0) {
                 return Gen.of(median);
             }
-            final LocalDateTime start = median.minus(size, unit);
-            final LocalDateTime end = median.plus(size, unit);
+            final long radius = Math.abs((long) size);
+            final LocalDateTime start = median.minus(radius, unit);
+            final LocalDateTime end = median.plus(radius, unit);
             final long duration = Duration.between(start, end).toMillis();
-            final Gen<Long> from = Gen.choose(0, duration);
-            return random -> start.plus(from.apply(random), ChronoUnit.MILLIS);
+            final Gen<LocalDateTime> dates = GenModule.chooseLong(0, duration)
+                    .map(offset -> start.plus(offset, ChronoUnit.MILLIS));
+            return GenModule.withEdges(dates, List.of(start, median, end).distinct());
         };
     }
 
     /**
      * Generates arbitrary strings based on a given alphabet represented by <em>gen</em>.
+     * Lengths range from zero to {@code size}, favoring empty, singleton, and near-maximum strings.
+     * Nonpositive sizes produce empty strings.
      * <p>
      * Example:
      * <pre>
@@ -282,17 +290,22 @@ public interface Arbitrary<T> {
      * @return a new Arbitrary of String
      */
     static Arbitrary<String> string(Gen<Character> gen) {
-        return size -> random -> Gen.choose(0, size).map(i -> {
-            final char[] chars = new char[i];
-            for (int j = 0; j < i; j++) {
-                chars[j] = gen.apply(random);
-            }
-            return new String(chars);
-        }).apply(random);
+        return size -> {
+            final Gen<Integer> lengths = Gen.choose(0, Math.max(0, size));
+            return random -> {
+                final char[] chars = new char[lengths.apply(random)];
+                for (int j = 0; j < chars.length; j++) {
+                    chars[j] = gen.apply(random);
+                }
+                return new String(chars);
+            };
+        };
     }
 
     /**
      * Generates arbitrary lists based on a given element generator arbitraryT.
+     * Lengths range from zero to {@code size}, favoring empty, singleton, and near-maximum lists.
+     * Nonpositive sizes produce empty lists.
      * <p>
      * Example:
      * <pre>
@@ -308,12 +321,15 @@ public interface Arbitrary<T> {
     static <T> Arbitrary<List<T>> list(Arbitrary<T> arbitraryT) {
         return size -> {
             final Gen<T> genT = arbitraryT.apply(size);
-            return random -> List.fill(Gen.choose(0, size).apply(random), () -> genT.apply(random));
+            final Gen<Integer> lengths = Gen.choose(0, Math.max(0, size));
+            return random -> List.fill(lengths.apply(random), () -> genT.apply(random));
         };
     }
 
     /**
      * Generates arbitrary streams based on a given element generator arbitraryT.
+     * Lengths range from zero to {@code size}, favoring empty, singleton, and near-maximum streams.
+     * Nonpositive sizes produce empty streams.
      * <p>
      * Example:
      * <pre>
@@ -329,8 +345,11 @@ public interface Arbitrary<T> {
     static <T> Arbitrary<Stream<T>> stream(Arbitrary<T> arbitraryT) {
         return size -> {
             final Gen<T> genT = arbitraryT.apply(size);
-            return random -> Stream.continually(() -> genT.apply(random))
-                    .take(Gen.choose(0, size).apply(random));
+            final Gen<Integer> lengths = Gen.choose(0, Math.max(0, size));
+            return random -> {
+                final int length = lengths.apply(random);
+                return length == 0 ? Stream.empty() : Stream.continually(() -> genT.apply(random)).take(length);
+            };
         };
     }
 }
