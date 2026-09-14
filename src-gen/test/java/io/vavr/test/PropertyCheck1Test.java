@@ -23,8 +23,10 @@ package io.vavr.test;
 \*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.vavr.CheckedFunction1;
+import io.vavr.Tuple;
 import org.junit.Test;
 
 public class PropertyCheck1Test {
@@ -60,6 +62,140 @@ public class PropertyCheck1Test {
         final CheckedFunction1<Object, Boolean> predicate = (o1) -> false;
         final CheckResult result = forAll.suchThat(predicate).check();
         assertThat(result.isFalsified()).isTrue();
+        assertThat(result.message().isEmpty()).isTrue();
+    }
+
+    @Test
+    public void shouldCheckSuccessfulPredicateResult1() {
+        final CheckResult result = Property.def("test").forAll(OBJECTS)
+                .suchThatResult((o1) -> PredicateResult.success()).check(0, 3);
+        assertThat(result.isSatisfied()).isTrue();
+        assertThat(result.isExhausted()).isFalse();
+        assertThat(result.count()).isEqualTo(3);
+        assertThat(result.message().isEmpty()).isTrue();
+    }
+
+    @Test
+    public void shouldReportPredicateFailureMessage1() {
+        final CheckResult result = Property.def("test")
+                .forAll(Gen.of(1).arbitrary())
+                .suchThatResult((o1) -> PredicateResult.failure("failed: " + Tuple.of(o1)))
+                .check(0, 3);
+        assertThat(result.isFalsified()).isTrue();
+        assertThat(result.isErroneous()).isFalse();
+        assertThat(result.count()).isEqualTo(1);
+        assertThat(result.sample().get()).isEqualTo(Tuple.of(1));
+        assertThat(result.message().get()).isEqualTo("failed: (1)");
+        assertThat(result.error().isEmpty()).isTrue();
+        assertThatThrownBy(result::assertIsSatisfied)
+                .isInstanceOf(AssertionError.class)
+                .hasMessageContaining("failed: (1)");
+    }
+
+    @Test
+    public void shouldCheckErroneousPredicateResult1() {
+        final Exception cause = new Exception("yay! (this is a negative test)");
+        final CheckResult result = Property.def("test").forAll(OBJECTS)
+                .suchThatResult((o1) -> { throw cause; }).check(0, 3);
+        assertThat(result.isErroneous()).isTrue();
+        assertThat(result.error().get()).hasCause(cause);
+        assertThat(result.sample().isDefined()).isTrue();
+        assertThat(result.message().isEmpty()).isTrue();
+    }
+
+    @Test
+    public void shouldReportNullPredicateResultAsErroneous1() {
+        final CheckResult result = Property.def("test").forAll(OBJECTS)
+                .suchThatResult((o1) -> null).check(0, 3);
+        assertThat(result.isErroneous()).isTrue();
+        assertThat(result.error().get()).hasCauseInstanceOf(NullPointerException.class);
+        assertThat(result.sample().isDefined()).isTrue();
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void shouldRejectNullResultPredicate1() {
+        Property.def("test").forAll(OBJECTS).suchThatResult(null);
+    }
+
+    @Test
+    public void shouldReportPostconditionFailureMessage1() {
+        final CheckResult result = Property.def("test")
+                .forAll(Gen.of(1).arbitrary())
+                .suchThat((o1) -> true)
+                .impliesResult((o1) -> PredicateResult.failure("postcondition: " + Tuple.of(o1)))
+                .check(0, 3);
+        assertThat(result.isFalsified()).isTrue();
+        assertThat(result.sample().get()).isEqualTo(Tuple.of(1));
+        assertThat(result.message().get()).isEqualTo("postcondition: (1)");
+    }
+
+    @Test
+    public void shouldCheckSuccessfulResultImplication1() {
+        final CheckResult result = Property.def("test").forAll(OBJECTS)
+                .suchThatResult((o1) -> PredicateResult.success())
+                .impliesResult((o1) -> PredicateResult.success()).check(0, 3);
+        assertThat(result.isSatisfied()).isTrue();
+        assertThat(result.isExhausted()).isFalse();
+        assertThat(result.message().isEmpty()).isTrue();
+    }
+
+    @Test
+    public void shouldSkipResultPostconditionForFalseBooleanPrecondition1() {
+        final CheckResult result = Property.def("test").forAll(OBJECTS)
+                .suchThat((o1) -> false)
+                .impliesResult((o1) -> { throw new AssertionError("must not run"); }).check(0, 3);
+        assertThat(result.isSatisfied()).isTrue();
+        assertThat(result.isExhausted()).isTrue();
+        assertThat(result.message().isEmpty()).isTrue();
+    }
+
+    @Test
+    public void shouldDiscardRejectedPreconditionMessage1() {
+        final Property.Property1<Object> property = Property.def("test").forAll(OBJECTS)
+                .suchThatResult((o1) -> PredicateResult.failure("rejected input"));
+        final CheckResult booleanResult = property
+                .implies((o1) -> { throw new AssertionError("must not run"); }).check(0, 3);
+        final CheckResult detailedResult = property
+                .impliesResult((o1) -> { throw new AssertionError("must not run"); }).check(0, 3);
+        for (CheckResult result : new CheckResult[] { booleanResult, detailedResult }) {
+            assertThat(result.isSatisfied()).isTrue();
+            assertThat(result.isExhausted()).isTrue();
+            assertThat(result.count()).isEqualTo(3);
+            assertThat(result.message().isEmpty()).isTrue();
+        }
+    }
+
+    @Test
+    public void shouldAllowBooleanPostconditionAfterPredicateResult1() {
+        final CheckResult result = Property.def("test").forAll(OBJECTS)
+                .suchThatResult((o1) -> PredicateResult.success())
+                .implies((o1) -> false).check(0, 3);
+        assertThat(result.isFalsified()).isTrue();
+        assertThat(result.message().isEmpty()).isTrue();
+    }
+
+    @Test
+    public void shouldReportNullPostconditionResultAsErroneous1() {
+        final CheckResult result = Property.def("test").forAll(OBJECTS)
+                .suchThat((o1) -> true).impliesResult((o1) -> null).check(0, 3);
+        assertThat(result.isErroneous()).isTrue();
+        assertThat(result.error().get()).hasCauseInstanceOf(NullPointerException.class);
+        assertThat(result.sample().isDefined()).isTrue();
+    }
+
+    @Test
+    public void shouldCheckErroneousPostconditionResult1() {
+        final Exception cause = new Exception("yay! (this is a negative test)");
+        final CheckResult result = Property.def("test").forAll(OBJECTS)
+                .suchThat((o1) -> true).impliesResult((o1) -> { throw cause; }).check(0, 3);
+        assertThat(result.isErroneous()).isTrue();
+        assertThat(result.error().get()).hasCause(cause);
+        assertThat(result.sample().isDefined()).isTrue();
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void shouldRejectNullResultPostcondition1() {
+        Property.def("test").forAll(OBJECTS).suchThat((o1) -> true).impliesResult(null);
     }
 
     @Test

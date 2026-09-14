@@ -89,8 +89,9 @@ def generateMainClasses(): Unit = {
               }
           }
 
-          private static void logFalsified(String name, int currentTry, long millis) {
-              log(String.format("%s: Falsified after %s passed tests in %s ms.", name, currentTry - 1, millis));
+          private static void logFalsified(String name, int currentTry, long millis, String message) {
+              log(String.format("%s: Falsified after %s passed tests in %s ms.", name, currentTry - 1, millis)
+                      + (message == null ? "" : " Message: " + message));
           }
 
           private static void logErroneous(String name, int currentTry, long millis, String errorMessage) {
@@ -187,6 +188,21 @@ def generateMainClasses(): Unit = {
                           final ${im.getType(s"io.vavr.CheckedFunction$i")}<$generics, Condition> proposition = (${params("t")}) -> new Condition(true, predicate.apply(${params("t")}));
                           return new Property$i<>(name, ${params("a")}, proposition);
                       }
+
+                      /$javadoc
+                       * Returns a checkable property whose predicate can explain a failure.
+                       * A failed result contributes its message to the {@link CheckResult} and assertion errors.
+                       * A thrown exception or a null result makes the check erroneous.
+                       *
+                       * @param predicate A $i-ary predicate returning a non-null {@link PredicateResult}
+                       * @return a new {@code Property$i} of $i variables
+                       * @throws NullPointerException if predicate is null
+                       */
+                      public Property$i<$generics> suchThatResult(${im.getType(s"io.vavr.CheckedFunction$i")}<$generics, PredicateResult> predicate) {
+                          ${im.getType("java.util.Objects")}.requireNonNull(predicate, "predicate is null");
+                          final ${im.getType(s"io.vavr.CheckedFunction$i")}<$generics, Condition> proposition = (${params("t")}) -> new Condition(true, predicate.apply(${params("t")}));
+                          return new Property$i<>(name, ${params("a")}, proposition);
+                      }
                   }
               """
           })("\n\n")}
@@ -242,6 +258,29 @@ def generateMainClasses(): Unit = {
                           return new Property$i<>(name, ${params("a")}, implication);
                       }
 
+                      /$javadoc
+                       * Returns an implication whose postcondition can explain a failure.
+                       * The postcondition is evaluated only when this property holds; messages from
+                       * rejected preconditions are discarded. A thrown exception or a null result
+                       * makes the check erroneous.
+                       *
+                       * @param postcondition The postcondition returning a non-null {@link PredicateResult}
+                       * @return A new Checkable implication
+                       * @throws NullPointerException if postcondition is null
+                       */
+                      public Checkable impliesResult($checkedFunctionType<$generics, PredicateResult> postcondition) {
+                          ${im.getType("java.util.Objects")}.requireNonNull(postcondition, "postcondition is null");
+                          final $checkedFunctionType<$generics, Condition> implication = (${params("t")}) -> {
+                              final Condition precondition = predicate.apply(${params("t")});
+                              if (precondition.isFalse()) {
+                                  return Condition.EX_FALSO_QUODLIBET;
+                              } else {
+                                  return new Condition(true, postcondition.apply(${params("t")}));
+                              }
+                          };
+                          return new Property$i<>(name, ${params("a")}, implication);
+                      }
+
                       @Override
                       public CheckResult check($randomType random, int size, int tries) {
                           ${im.getType("java.util.Objects")}.requireNonNull(random, "random is null");
@@ -264,8 +303,8 @@ def generateMainClasses(): Unit = {
                                           if (condition.precondition) {
                                               exhausted = false;
                                               if (!condition.postcondition) {
-                                                  logFalsified(name, i, System.currentTimeMillis() - startTime);
-                                                  return new CheckResult.Falsified(name, i, $tupleType.of(${(1 to i).gen(j => s"val$j")(", ")}));
+                                                  logFalsified(name, i, System.currentTimeMillis() - startTime, condition.message);
+                                                  return new CheckResult.Falsified(name, i, $tupleType.of(${(1 to i).gen(j => s"val$j")(", ")}), condition.message);
                                               }
                                           }
                                       } catch(CheckError err) {
@@ -297,10 +336,20 @@ def generateMainClasses(): Unit = {
 
               final boolean precondition;
               final boolean postcondition;
+              final String message;
 
               Condition(boolean precondition, boolean postcondition) {
+                  this(precondition, postcondition, null);
+              }
+
+              Condition(boolean precondition, PredicateResult result) {
+                  this(precondition, ${im.getType("java.util.Objects")}.requireNonNull(result, "predicate result is null").isSuccess(), result.message().getOrNull());
+              }
+
+              private Condition(boolean precondition, boolean postcondition, String message) {
                   this.precondition = precondition;
                   this.postcondition = postcondition;
+                  this.message = message;
               }
 
               // ¬(p => q) ≡ ¬(¬p ∨ q) ≡ p ∧ ¬q
@@ -609,6 +658,140 @@ def generateTestClasses(): Unit = {
                   final ${im.getType(s"io.vavr.CheckedFunction$i")}<$generics, Boolean> predicate = ($args) -> false;
                   final CheckResult result = forAll.suchThat(predicate).check();
                   $assertThat(result.isFalsified()).isTrue();
+                  $assertThat(result.message().isEmpty()).isTrue();
+              }
+
+              @$test
+              public void shouldCheckSuccessfulPredicateResult$i() {
+                  final CheckResult result = Property.def("test").forAll($arbitraries)
+                          .suchThatResult(($args) -> PredicateResult.success()).check(0, 3);
+                  $assertThat(result.isSatisfied()).isTrue();
+                  $assertThat(result.isExhausted()).isFalse();
+                  $assertThat(result.count()).isEqualTo(3);
+                  $assertThat(result.message().isEmpty()).isTrue();
+              }
+
+              @$test
+              public void shouldReportPredicateFailureMessage$i() {
+                  final CheckResult result = Property.def("test")
+                          .forAll(${(1 to i).gen(j => s"Gen.of($j).arbitrary()")(", ")})
+                          .suchThatResult(($args) -> PredicateResult.failure("failed: " + ${im.getType("io.vavr.Tuple")}.of($args)))
+                          .check(0, 3);
+                  $assertThat(result.isFalsified()).isTrue();
+                  $assertThat(result.isErroneous()).isFalse();
+                  $assertThat(result.count()).isEqualTo(1);
+                  $assertThat(result.sample().get()).isEqualTo(${im.getType("io.vavr.Tuple")}.of(${(1 to i).gen(j => s"$j")(", ")}));
+                  $assertThat(result.message().get()).isEqualTo("failed: (${(1 to i).gen(j => s"$j")(", ")})");
+                  $assertThat(result.error().isEmpty()).isTrue();
+                  ${im.getStatic("org.assertj.core.api.Assertions.assertThatThrownBy")}(result::assertIsSatisfied)
+                          .isInstanceOf(AssertionError.class)
+                          .hasMessageContaining("failed: (${(1 to i).gen(j => s"$j")(", ")})");
+              }
+
+              @$test
+              public void shouldCheckErroneousPredicateResult$i() {
+                  final Exception cause = new Exception("$woops");
+                  final CheckResult result = Property.def("test").forAll($arbitraries)
+                          .suchThatResult(($args) -> { throw cause; }).check(0, 3);
+                  $assertThat(result.isErroneous()).isTrue();
+                  $assertThat(result.error().get()).hasCause(cause);
+                  $assertThat(result.sample().isDefined()).isTrue();
+                  $assertThat(result.message().isEmpty()).isTrue();
+              }
+
+              @$test
+              public void shouldReportNullPredicateResultAsErroneous$i() {
+                  final CheckResult result = Property.def("test").forAll($arbitraries)
+                          .suchThatResult(($args) -> null).check(0, 3);
+                  $assertThat(result.isErroneous()).isTrue();
+                  $assertThat(result.error().get()).hasCauseInstanceOf(NullPointerException.class);
+                  $assertThat(result.sample().isDefined()).isTrue();
+              }
+
+              @$test(expected = NullPointerException.class)
+              public void shouldRejectNullResultPredicate$i() {
+                  Property.def("test").forAll($arbitraries).suchThatResult(null);
+              }
+
+              @$test
+              public void shouldReportPostconditionFailureMessage$i() {
+                  final CheckResult result = Property.def("test")
+                          .forAll(${(1 to i).gen(j => s"Gen.of($j).arbitrary()")(", ")})
+                          .suchThat(($args) -> true)
+                          .impliesResult(($args) -> PredicateResult.failure("postcondition: " + ${im.getType("io.vavr.Tuple")}.of($args)))
+                          .check(0, 3);
+                  $assertThat(result.isFalsified()).isTrue();
+                  $assertThat(result.sample().get()).isEqualTo(${im.getType("io.vavr.Tuple")}.of(${(1 to i).gen(j => s"$j")(", ")}));
+                  $assertThat(result.message().get()).isEqualTo("postcondition: (${(1 to i).gen(j => s"$j")(", ")})");
+              }
+
+              @$test
+              public void shouldCheckSuccessfulResultImplication$i() {
+                  final CheckResult result = Property.def("test").forAll($arbitraries)
+                          .suchThatResult(($args) -> PredicateResult.success())
+                          .impliesResult(($args) -> PredicateResult.success()).check(0, 3);
+                  $assertThat(result.isSatisfied()).isTrue();
+                  $assertThat(result.isExhausted()).isFalse();
+                  $assertThat(result.message().isEmpty()).isTrue();
+              }
+
+              @$test
+              public void shouldSkipResultPostconditionForFalseBooleanPrecondition$i() {
+                  final CheckResult result = Property.def("test").forAll($arbitraries)
+                          .suchThat(($args) -> false)
+                          .impliesResult(($args) -> { throw new AssertionError("must not run"); }).check(0, 3);
+                  $assertThat(result.isSatisfied()).isTrue();
+                  $assertThat(result.isExhausted()).isTrue();
+                  $assertThat(result.message().isEmpty()).isTrue();
+              }
+
+              @$test
+              public void shouldDiscardRejectedPreconditionMessage$i() {
+                  final Property.Property$i<$generics> property = Property.def("test").forAll($arbitraries)
+                          .suchThatResult(($args) -> PredicateResult.failure("rejected input"));
+                  final CheckResult booleanResult = property
+                          .implies(($args) -> { throw new AssertionError("must not run"); }).check(0, 3);
+                  final CheckResult detailedResult = property
+                          .impliesResult(($args) -> { throw new AssertionError("must not run"); }).check(0, 3);
+                  for (CheckResult result : new CheckResult[] { booleanResult, detailedResult }) {
+                      $assertThat(result.isSatisfied()).isTrue();
+                      $assertThat(result.isExhausted()).isTrue();
+                      $assertThat(result.count()).isEqualTo(3);
+                      $assertThat(result.message().isEmpty()).isTrue();
+                  }
+              }
+
+              @$test
+              public void shouldAllowBooleanPostconditionAfterPredicateResult$i() {
+                  final CheckResult result = Property.def("test").forAll($arbitraries)
+                          .suchThatResult(($args) -> PredicateResult.success())
+                          .implies(($args) -> false).check(0, 3);
+                  $assertThat(result.isFalsified()).isTrue();
+                  $assertThat(result.message().isEmpty()).isTrue();
+              }
+
+              @$test
+              public void shouldReportNullPostconditionResultAsErroneous$i() {
+                  final CheckResult result = Property.def("test").forAll($arbitraries)
+                          .suchThat(($args) -> true).impliesResult(($args) -> null).check(0, 3);
+                  $assertThat(result.isErroneous()).isTrue();
+                  $assertThat(result.error().get()).hasCauseInstanceOf(NullPointerException.class);
+                  $assertThat(result.sample().isDefined()).isTrue();
+              }
+
+              @$test
+              public void shouldCheckErroneousPostconditionResult$i() {
+                  final Exception cause = new Exception("$woops");
+                  final CheckResult result = Property.def("test").forAll($arbitraries)
+                          .suchThat(($args) -> true).impliesResult(($args) -> { throw cause; }).check(0, 3);
+                  $assertThat(result.isErroneous()).isTrue();
+                  $assertThat(result.error().get()).hasCause(cause);
+                  $assertThat(result.sample().isDefined()).isTrue();
+              }
+
+              @$test(expected = NullPointerException.class)
+              public void shouldRejectNullResultPostcondition$i() {
+                  Property.def("test").forAll($arbitraries).suchThat(($args) -> true).impliesResult(null);
               }
 
               @$test

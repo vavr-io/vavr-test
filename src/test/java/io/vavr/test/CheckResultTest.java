@@ -26,6 +26,7 @@ import org.junit.Test;
 import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class CheckResultTest {
 
@@ -196,6 +197,39 @@ public class CheckResultTest {
     @Test
     public void shouldComputeToStringOfFalsified() {
         assertThat(FALSIFIED.toString()).isEqualTo("Falsified(propertyName = test, count = 0, sample = (1))");
+    }
+
+    @Test
+    public void shouldHaveNoMessageWithoutPredicateExplanation() {
+        assertThat(SATISFIED.message()).isEqualTo(Option.none());
+        assertThat(FALSIFIED.message()).isEqualTo(Option.none());
+        assertThat(ERRONEOUS.message()).isEqualTo(Option.none());
+    }
+
+    @Test
+    public void shouldIncludePredicateMessageInFailureAndAssertions() {
+        final CheckResult result = new CheckResult.Falsified("positive", 1, Tuple.of(-1), "expected a positive value");
+        assertThat(result.message()).isEqualTo(Option.some("expected a positive value"));
+        assertThat(result.toString()).isEqualTo("Falsified(propertyName = positive, count = 1, sample = (-1), message = expected a positive value)");
+        assertThatThrownBy(result::assertIsSatisfied)
+                .isInstanceOf(AssertionError.class)
+                .hasMessageContaining("sample = (-1)")
+                .hasMessageContaining("expected a positive value");
+        assertThatThrownBy(() -> result.assertIsSatisfiedWithExhaustion(false))
+                .isInstanceOf(AssertionError.class)
+                .hasMessageContaining("sample = (-1)")
+                .hasMessageContaining("expected a positive value");
+    }
+
+    @Test
+    public void shouldIncludePredicateMessageInFalsifiedEqualityAndHashCode() {
+        final CheckResult result = new CheckResult.Falsified("test", 0, Tuple.of(1), "first reason");
+        final CheckResult equal = new CheckResult.Falsified("test", 0, Tuple.of(1), "first reason");
+        assertThat(result).isEqualTo(equal);
+        assertThat(result.hashCode()).isEqualTo(equal.hashCode());
+        assertThat(result).isNotEqualTo(new CheckResult.Falsified("test", 0, Tuple.of(1), "second reason"));
+        assertThat(result).isNotEqualTo(FALSIFIED);
+        assertThat(FALSIFIED).isNotEqualTo(result);
     }
 
     // -- Erroneous

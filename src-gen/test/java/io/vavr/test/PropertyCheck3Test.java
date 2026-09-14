@@ -23,8 +23,10 @@ package io.vavr.test;
 \*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.vavr.CheckedFunction3;
+import io.vavr.Tuple;
 import org.junit.Test;
 
 public class PropertyCheck3Test {
@@ -60,6 +62,140 @@ public class PropertyCheck3Test {
         final CheckedFunction3<Object, Object, Object, Boolean> predicate = (o1, o2, o3) -> false;
         final CheckResult result = forAll.suchThat(predicate).check();
         assertThat(result.isFalsified()).isTrue();
+        assertThat(result.message().isEmpty()).isTrue();
+    }
+
+    @Test
+    public void shouldCheckSuccessfulPredicateResult3() {
+        final CheckResult result = Property.def("test").forAll(OBJECTS, OBJECTS, OBJECTS)
+                .suchThatResult((o1, o2, o3) -> PredicateResult.success()).check(0, 3);
+        assertThat(result.isSatisfied()).isTrue();
+        assertThat(result.isExhausted()).isFalse();
+        assertThat(result.count()).isEqualTo(3);
+        assertThat(result.message().isEmpty()).isTrue();
+    }
+
+    @Test
+    public void shouldReportPredicateFailureMessage3() {
+        final CheckResult result = Property.def("test")
+                .forAll(Gen.of(1).arbitrary(), Gen.of(2).arbitrary(), Gen.of(3).arbitrary())
+                .suchThatResult((o1, o2, o3) -> PredicateResult.failure("failed: " + Tuple.of(o1, o2, o3)))
+                .check(0, 3);
+        assertThat(result.isFalsified()).isTrue();
+        assertThat(result.isErroneous()).isFalse();
+        assertThat(result.count()).isEqualTo(1);
+        assertThat(result.sample().get()).isEqualTo(Tuple.of(1, 2, 3));
+        assertThat(result.message().get()).isEqualTo("failed: (1, 2, 3)");
+        assertThat(result.error().isEmpty()).isTrue();
+        assertThatThrownBy(result::assertIsSatisfied)
+                .isInstanceOf(AssertionError.class)
+                .hasMessageContaining("failed: (1, 2, 3)");
+    }
+
+    @Test
+    public void shouldCheckErroneousPredicateResult3() {
+        final Exception cause = new Exception("yay! (this is a negative test)");
+        final CheckResult result = Property.def("test").forAll(OBJECTS, OBJECTS, OBJECTS)
+                .suchThatResult((o1, o2, o3) -> { throw cause; }).check(0, 3);
+        assertThat(result.isErroneous()).isTrue();
+        assertThat(result.error().get()).hasCause(cause);
+        assertThat(result.sample().isDefined()).isTrue();
+        assertThat(result.message().isEmpty()).isTrue();
+    }
+
+    @Test
+    public void shouldReportNullPredicateResultAsErroneous3() {
+        final CheckResult result = Property.def("test").forAll(OBJECTS, OBJECTS, OBJECTS)
+                .suchThatResult((o1, o2, o3) -> null).check(0, 3);
+        assertThat(result.isErroneous()).isTrue();
+        assertThat(result.error().get()).hasCauseInstanceOf(NullPointerException.class);
+        assertThat(result.sample().isDefined()).isTrue();
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void shouldRejectNullResultPredicate3() {
+        Property.def("test").forAll(OBJECTS, OBJECTS, OBJECTS).suchThatResult(null);
+    }
+
+    @Test
+    public void shouldReportPostconditionFailureMessage3() {
+        final CheckResult result = Property.def("test")
+                .forAll(Gen.of(1).arbitrary(), Gen.of(2).arbitrary(), Gen.of(3).arbitrary())
+                .suchThat((o1, o2, o3) -> true)
+                .impliesResult((o1, o2, o3) -> PredicateResult.failure("postcondition: " + Tuple.of(o1, o2, o3)))
+                .check(0, 3);
+        assertThat(result.isFalsified()).isTrue();
+        assertThat(result.sample().get()).isEqualTo(Tuple.of(1, 2, 3));
+        assertThat(result.message().get()).isEqualTo("postcondition: (1, 2, 3)");
+    }
+
+    @Test
+    public void shouldCheckSuccessfulResultImplication3() {
+        final CheckResult result = Property.def("test").forAll(OBJECTS, OBJECTS, OBJECTS)
+                .suchThatResult((o1, o2, o3) -> PredicateResult.success())
+                .impliesResult((o1, o2, o3) -> PredicateResult.success()).check(0, 3);
+        assertThat(result.isSatisfied()).isTrue();
+        assertThat(result.isExhausted()).isFalse();
+        assertThat(result.message().isEmpty()).isTrue();
+    }
+
+    @Test
+    public void shouldSkipResultPostconditionForFalseBooleanPrecondition3() {
+        final CheckResult result = Property.def("test").forAll(OBJECTS, OBJECTS, OBJECTS)
+                .suchThat((o1, o2, o3) -> false)
+                .impliesResult((o1, o2, o3) -> { throw new AssertionError("must not run"); }).check(0, 3);
+        assertThat(result.isSatisfied()).isTrue();
+        assertThat(result.isExhausted()).isTrue();
+        assertThat(result.message().isEmpty()).isTrue();
+    }
+
+    @Test
+    public void shouldDiscardRejectedPreconditionMessage3() {
+        final Property.Property3<Object, Object, Object> property = Property.def("test").forAll(OBJECTS, OBJECTS, OBJECTS)
+                .suchThatResult((o1, o2, o3) -> PredicateResult.failure("rejected input"));
+        final CheckResult booleanResult = property
+                .implies((o1, o2, o3) -> { throw new AssertionError("must not run"); }).check(0, 3);
+        final CheckResult detailedResult = property
+                .impliesResult((o1, o2, o3) -> { throw new AssertionError("must not run"); }).check(0, 3);
+        for (CheckResult result : new CheckResult[] { booleanResult, detailedResult }) {
+            assertThat(result.isSatisfied()).isTrue();
+            assertThat(result.isExhausted()).isTrue();
+            assertThat(result.count()).isEqualTo(3);
+            assertThat(result.message().isEmpty()).isTrue();
+        }
+    }
+
+    @Test
+    public void shouldAllowBooleanPostconditionAfterPredicateResult3() {
+        final CheckResult result = Property.def("test").forAll(OBJECTS, OBJECTS, OBJECTS)
+                .suchThatResult((o1, o2, o3) -> PredicateResult.success())
+                .implies((o1, o2, o3) -> false).check(0, 3);
+        assertThat(result.isFalsified()).isTrue();
+        assertThat(result.message().isEmpty()).isTrue();
+    }
+
+    @Test
+    public void shouldReportNullPostconditionResultAsErroneous3() {
+        final CheckResult result = Property.def("test").forAll(OBJECTS, OBJECTS, OBJECTS)
+                .suchThat((o1, o2, o3) -> true).impliesResult((o1, o2, o3) -> null).check(0, 3);
+        assertThat(result.isErroneous()).isTrue();
+        assertThat(result.error().get()).hasCauseInstanceOf(NullPointerException.class);
+        assertThat(result.sample().isDefined()).isTrue();
+    }
+
+    @Test
+    public void shouldCheckErroneousPostconditionResult3() {
+        final Exception cause = new Exception("yay! (this is a negative test)");
+        final CheckResult result = Property.def("test").forAll(OBJECTS, OBJECTS, OBJECTS)
+                .suchThat((o1, o2, o3) -> true).impliesResult((o1, o2, o3) -> { throw cause; }).check(0, 3);
+        assertThat(result.isErroneous()).isTrue();
+        assertThat(result.error().get()).hasCause(cause);
+        assertThat(result.sample().isDefined()).isTrue();
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void shouldRejectNullResultPostcondition3() {
+        Property.def("test").forAll(OBJECTS, OBJECTS, OBJECTS).suchThat((o1, o2, o3) -> true).impliesResult(null);
     }
 
     @Test

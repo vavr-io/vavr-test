@@ -23,8 +23,10 @@ package io.vavr.test;
 \*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.vavr.CheckedFunction6;
+import io.vavr.Tuple;
 import org.junit.Test;
 
 public class PropertyCheck6Test {
@@ -60,6 +62,140 @@ public class PropertyCheck6Test {
         final CheckedFunction6<Object, Object, Object, Object, Object, Object, Boolean> predicate = (o1, o2, o3, o4, o5, o6) -> false;
         final CheckResult result = forAll.suchThat(predicate).check();
         assertThat(result.isFalsified()).isTrue();
+        assertThat(result.message().isEmpty()).isTrue();
+    }
+
+    @Test
+    public void shouldCheckSuccessfulPredicateResult6() {
+        final CheckResult result = Property.def("test").forAll(OBJECTS, OBJECTS, OBJECTS, OBJECTS, OBJECTS, OBJECTS)
+                .suchThatResult((o1, o2, o3, o4, o5, o6) -> PredicateResult.success()).check(0, 3);
+        assertThat(result.isSatisfied()).isTrue();
+        assertThat(result.isExhausted()).isFalse();
+        assertThat(result.count()).isEqualTo(3);
+        assertThat(result.message().isEmpty()).isTrue();
+    }
+
+    @Test
+    public void shouldReportPredicateFailureMessage6() {
+        final CheckResult result = Property.def("test")
+                .forAll(Gen.of(1).arbitrary(), Gen.of(2).arbitrary(), Gen.of(3).arbitrary(), Gen.of(4).arbitrary(), Gen.of(5).arbitrary(), Gen.of(6).arbitrary())
+                .suchThatResult((o1, o2, o3, o4, o5, o6) -> PredicateResult.failure("failed: " + Tuple.of(o1, o2, o3, o4, o5, o6)))
+                .check(0, 3);
+        assertThat(result.isFalsified()).isTrue();
+        assertThat(result.isErroneous()).isFalse();
+        assertThat(result.count()).isEqualTo(1);
+        assertThat(result.sample().get()).isEqualTo(Tuple.of(1, 2, 3, 4, 5, 6));
+        assertThat(result.message().get()).isEqualTo("failed: (1, 2, 3, 4, 5, 6)");
+        assertThat(result.error().isEmpty()).isTrue();
+        assertThatThrownBy(result::assertIsSatisfied)
+                .isInstanceOf(AssertionError.class)
+                .hasMessageContaining("failed: (1, 2, 3, 4, 5, 6)");
+    }
+
+    @Test
+    public void shouldCheckErroneousPredicateResult6() {
+        final Exception cause = new Exception("yay! (this is a negative test)");
+        final CheckResult result = Property.def("test").forAll(OBJECTS, OBJECTS, OBJECTS, OBJECTS, OBJECTS, OBJECTS)
+                .suchThatResult((o1, o2, o3, o4, o5, o6) -> { throw cause; }).check(0, 3);
+        assertThat(result.isErroneous()).isTrue();
+        assertThat(result.error().get()).hasCause(cause);
+        assertThat(result.sample().isDefined()).isTrue();
+        assertThat(result.message().isEmpty()).isTrue();
+    }
+
+    @Test
+    public void shouldReportNullPredicateResultAsErroneous6() {
+        final CheckResult result = Property.def("test").forAll(OBJECTS, OBJECTS, OBJECTS, OBJECTS, OBJECTS, OBJECTS)
+                .suchThatResult((o1, o2, o3, o4, o5, o6) -> null).check(0, 3);
+        assertThat(result.isErroneous()).isTrue();
+        assertThat(result.error().get()).hasCauseInstanceOf(NullPointerException.class);
+        assertThat(result.sample().isDefined()).isTrue();
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void shouldRejectNullResultPredicate6() {
+        Property.def("test").forAll(OBJECTS, OBJECTS, OBJECTS, OBJECTS, OBJECTS, OBJECTS).suchThatResult(null);
+    }
+
+    @Test
+    public void shouldReportPostconditionFailureMessage6() {
+        final CheckResult result = Property.def("test")
+                .forAll(Gen.of(1).arbitrary(), Gen.of(2).arbitrary(), Gen.of(3).arbitrary(), Gen.of(4).arbitrary(), Gen.of(5).arbitrary(), Gen.of(6).arbitrary())
+                .suchThat((o1, o2, o3, o4, o5, o6) -> true)
+                .impliesResult((o1, o2, o3, o4, o5, o6) -> PredicateResult.failure("postcondition: " + Tuple.of(o1, o2, o3, o4, o5, o6)))
+                .check(0, 3);
+        assertThat(result.isFalsified()).isTrue();
+        assertThat(result.sample().get()).isEqualTo(Tuple.of(1, 2, 3, 4, 5, 6));
+        assertThat(result.message().get()).isEqualTo("postcondition: (1, 2, 3, 4, 5, 6)");
+    }
+
+    @Test
+    public void shouldCheckSuccessfulResultImplication6() {
+        final CheckResult result = Property.def("test").forAll(OBJECTS, OBJECTS, OBJECTS, OBJECTS, OBJECTS, OBJECTS)
+                .suchThatResult((o1, o2, o3, o4, o5, o6) -> PredicateResult.success())
+                .impliesResult((o1, o2, o3, o4, o5, o6) -> PredicateResult.success()).check(0, 3);
+        assertThat(result.isSatisfied()).isTrue();
+        assertThat(result.isExhausted()).isFalse();
+        assertThat(result.message().isEmpty()).isTrue();
+    }
+
+    @Test
+    public void shouldSkipResultPostconditionForFalseBooleanPrecondition6() {
+        final CheckResult result = Property.def("test").forAll(OBJECTS, OBJECTS, OBJECTS, OBJECTS, OBJECTS, OBJECTS)
+                .suchThat((o1, o2, o3, o4, o5, o6) -> false)
+                .impliesResult((o1, o2, o3, o4, o5, o6) -> { throw new AssertionError("must not run"); }).check(0, 3);
+        assertThat(result.isSatisfied()).isTrue();
+        assertThat(result.isExhausted()).isTrue();
+        assertThat(result.message().isEmpty()).isTrue();
+    }
+
+    @Test
+    public void shouldDiscardRejectedPreconditionMessage6() {
+        final Property.Property6<Object, Object, Object, Object, Object, Object> property = Property.def("test").forAll(OBJECTS, OBJECTS, OBJECTS, OBJECTS, OBJECTS, OBJECTS)
+                .suchThatResult((o1, o2, o3, o4, o5, o6) -> PredicateResult.failure("rejected input"));
+        final CheckResult booleanResult = property
+                .implies((o1, o2, o3, o4, o5, o6) -> { throw new AssertionError("must not run"); }).check(0, 3);
+        final CheckResult detailedResult = property
+                .impliesResult((o1, o2, o3, o4, o5, o6) -> { throw new AssertionError("must not run"); }).check(0, 3);
+        for (CheckResult result : new CheckResult[] { booleanResult, detailedResult }) {
+            assertThat(result.isSatisfied()).isTrue();
+            assertThat(result.isExhausted()).isTrue();
+            assertThat(result.count()).isEqualTo(3);
+            assertThat(result.message().isEmpty()).isTrue();
+        }
+    }
+
+    @Test
+    public void shouldAllowBooleanPostconditionAfterPredicateResult6() {
+        final CheckResult result = Property.def("test").forAll(OBJECTS, OBJECTS, OBJECTS, OBJECTS, OBJECTS, OBJECTS)
+                .suchThatResult((o1, o2, o3, o4, o5, o6) -> PredicateResult.success())
+                .implies((o1, o2, o3, o4, o5, o6) -> false).check(0, 3);
+        assertThat(result.isFalsified()).isTrue();
+        assertThat(result.message().isEmpty()).isTrue();
+    }
+
+    @Test
+    public void shouldReportNullPostconditionResultAsErroneous6() {
+        final CheckResult result = Property.def("test").forAll(OBJECTS, OBJECTS, OBJECTS, OBJECTS, OBJECTS, OBJECTS)
+                .suchThat((o1, o2, o3, o4, o5, o6) -> true).impliesResult((o1, o2, o3, o4, o5, o6) -> null).check(0, 3);
+        assertThat(result.isErroneous()).isTrue();
+        assertThat(result.error().get()).hasCauseInstanceOf(NullPointerException.class);
+        assertThat(result.sample().isDefined()).isTrue();
+    }
+
+    @Test
+    public void shouldCheckErroneousPostconditionResult6() {
+        final Exception cause = new Exception("yay! (this is a negative test)");
+        final CheckResult result = Property.def("test").forAll(OBJECTS, OBJECTS, OBJECTS, OBJECTS, OBJECTS, OBJECTS)
+                .suchThat((o1, o2, o3, o4, o5, o6) -> true).impliesResult((o1, o2, o3, o4, o5, o6) -> { throw cause; }).check(0, 3);
+        assertThat(result.isErroneous()).isTrue();
+        assertThat(result.error().get()).hasCause(cause);
+        assertThat(result.sample().isDefined()).isTrue();
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void shouldRejectNullResultPostcondition6() {
+        Property.def("test").forAll(OBJECTS, OBJECTS, OBJECTS, OBJECTS, OBJECTS, OBJECTS).suchThat((o1, o2, o3, o4, o5, o6) -> true).impliesResult(null);
     }
 
     @Test
