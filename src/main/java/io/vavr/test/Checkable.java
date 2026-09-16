@@ -74,7 +74,7 @@ public interface Checkable {
      * @return A {@linkplain CheckResult}
      */
     default CheckResult check() {
-        return check(RNG.get(), DEFAULT_SIZE, DEFAULT_TRIES);
+        return check(DEFAULT_SIZE, DEFAULT_TRIES);
     }
 
     /**
